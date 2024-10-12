@@ -40,11 +40,11 @@ class MPNEncoder(nn.Module):
         input_dim = self.bond_fdim
 
         # Input matrix
-        self.W_i = ConcreteDropout(layer=nn.Linear(input_dim, self.hidden_size, bias=False), reg_acc=args.reg_acc, weight_regularizer=wd, dropout_regularizer=dd)
+        self.W_i = ConcreteDropout(layer=nn.Linear(input_dim, self.hidden_size, bias=False), reg_acc=args.reg_acc, weight_regularizer=wd, dropout_regularizer=dd, train_strategy=args.train_strategy)
 
         # Shared weight matrix across depths (default)
-        self.W_h = ConcreteDropout(layer=nn.Linear(self.hidden_size, self.hidden_size, bias=False), reg_acc=args.reg_acc, weight_regularizer=wd, dropout_regularizer=dd, depth=self.depth - 1)
-        self.W_o = ConcreteDropout(layer=nn.Linear(self.atom_fdim + self.hidden_size, self.hidden_size), reg_acc=args.reg_acc, weight_regularizer=wd, dropout_regularizer=dd)
+        self.W_h = ConcreteDropout(layer=nn.Linear(self.hidden_size, self.hidden_size, bias=False), reg_acc=args.reg_acc, weight_regularizer=wd, dropout_regularizer=dd, depth=self.depth - 1, train_strategy=args.train_strategy)
+        self.W_o = ConcreteDropout(layer=nn.Linear(self.atom_fdim + self.hidden_size, self.hidden_size), reg_acc=args.reg_acc, weight_regularizer=wd, dropout_regularizer=dd, train_strategy=args.train_strategy)
 
     def forward(self,
                 mol_graph: BatchMolGraph) -> torch.FloatTensor:
@@ -97,4 +97,15 @@ class MPNEncoder(nn.Module):
         mol_vecs = torch.stack(mol_vecs, dim=0)  # (num_molecules, hidden_size)
 
         return mol_vecs  # num_molecules x hidden
+
+    def record_transfer_weight(self):
+        # Record the weight of transferred contrastive variational parameters
+        self.W_i.record_transfer_layer(self.W_i.layer)
+        self.W_h.record_transfer_layer(self.W_h.layer)
+        self.W_o.record_transfer_layer(self.W_o.layer)
+
+    def reset_dropout_rate(self):
+        self.W_i.reset_dropout_rate()
+        self.W_h.reset_dropout_rate()
+        self.W_o.reset_dropout_rate()
 

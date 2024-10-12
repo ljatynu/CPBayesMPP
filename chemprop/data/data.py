@@ -222,15 +222,17 @@ class MoleculeDataset(Dataset):
 
         return batch
 
-    def expand(self, new_data: List[MoleculeDatapoint]):
-        '''
-        Expand dataset with expand_data
-        '''
-        expanded_data = deepcopy(self.data)
-        expanded_data.extend(new_data)
-        return MoleculeDataset(expanded_data)
+    def sample_idxs(self, idxs: List[float]):
+        """
+        Samples the dataset according to specified indicies and returns new
+        dataset.
 
-    def remove(self, idxs: List[int]):
+        :param idxs: A list of desired inds of the dataset to keep.
+        """
+        data = [self.data[i] for i in idxs]
+        return MoleculeDataset(data)
+
+    def remove_inds(self, idxs: List[int]):
         '''
         Remove datapoints by indexs
         '''
@@ -238,6 +240,14 @@ class MoleculeDataset(Dataset):
         removed_data = set(removed_data)  # Convert to set for computation speed
         removed_data = [item for i, item in enumerate(removed_data) if i not in idxs]  # Conserve te item not in idxs
         return MoleculeDataset(removed_data)
+
+    def expand(self, new_data: List[MoleculeDatapoint]):
+        '''
+        Expand dataset with expand_data
+        '''
+        expanded_data = deepcopy(self.data)
+        expanded_data.extend(new_data)
+        return MoleculeDataset(expanded_data)
 
     def __len__(self) -> int:
         """

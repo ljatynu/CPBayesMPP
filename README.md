@@ -1,15 +1,22 @@
 # Contrastive Prior Enhances the Performance of Bayesian Neural Network-based Molecular Property Prediction (CPBayesMPP)
 
-This repository is an implementation of our paper "Contrastive Prior Enhances the Performance of Bayesian Neural Network-based Molecular Property Prediction" in PyTorch. In this work, we propose a method called **<u>CPBayesMPP</u>**, aiming at enhancing (1) prediction accuracy and (2) uncertainty quantification capacity (UQ) performance of Bayesian Neural Network (BNN).
+This repository is an implementation of our paper "Contrastive Prior Enhances the Performance of Bayesian Neural
+Network-based Molecular Property Prediction" in PyTorch. In this work, we propose a method called **<u>CPBayesMPP</u>**,
+aiming at enhancing (1) prediction accuracy and (2) uncertainty quantification capacity (UQ) performance of Bayesian
+Neural Network (BNN).
 
 The overview of CPBayesMPP is shown as following:
 
-![Alts](figures/The%20framework%20of%20proposed%20CPBayesMPP/The%20framework%20of%20proposed%20CPBayesMPP.JPG)
+![Alts](figures/The_framework_of_proposed_CPBayesMPP/The_framework_of_proposed_CPBayesMPP.JPG)
 
 CPBayesMPP contains two main stages:
 
-- **Stage (a): Learn contrastive prior from unlabeled dataset.** Instead of traditionally specifying an uninformative prior (e.g., isotropic Gaussian) on the parameters, we try to learn an informative contrastive prior from the large-scale unlabeled dataset, which can more precisely describe the molecular structural space.
-- **Stage (b): Infer enhanced task-specific posterior from labeled dataset.** Here, incorporating the learned contrastive prior, we infer a prior-enhanced task-specific posterior for the parameters, which can improve the prediction accuracy and UQ performance for the downstream datasets.
+- **Stage (a): Learn contrastive prior from unlabeled dataset.** Instead of traditionally specifying an uninformative
+  prior (e.g., isotropic Gaussian) on the parameters, we try to learn an informative contrastive prior from the
+  large-scale unlabeled dataset, which can more precisely describe the molecular structural space.
+- **Stage (b): Infer enhanced task-specific posterior from labeled dataset.** Here, incorporating the learned
+  contrastive prior, we infer a prior-enhanced task-specific posterior for the parameters, which can improve the
+  prediction accuracy and UQ performance for the downstream datasets.
 
 The details of CPBayesMPP are described in our paper.
 
@@ -17,6 +24,7 @@ The details of CPBayesMPP are described in our paper.
 
 - [Requirements](#requirements)
 - [Datasets](#datasets)
+- [Checkpoints](#checkpoints)
 - [Stage (a): Pre-training to learn contrastive prior](#stage-a-pre-training-to-learn-contrastive-prior)
 - [Stage (b): Infer enhanced task-specific posterior](#stage-b-infer-enhanced-task-specific-posterior)
 - [Stage (c): Enhanced-posterior prediction case studies](#stage-c-enhanced-posterior-prediction-case-studies)
@@ -24,42 +32,65 @@ The details of CPBayesMPP are described in our paper.
     - [Case study 2. Uncertainty quantification performance improvement](#case-study-2-uncertainty-quantification-performance-improvement)
     - [Case study 3. Active learning performance improvement](#case-study-3-active-learning-performance-improvement)
     - [Case study 4. Prior Prediction performance of contrastive prior](#case-study-4-prior-prediction-performance-of-contrastive-prior)
+    - [Case study 5. Out-of-distribution (OOD) detection performance improvement](#case-study-5-out-of-distribution-ood-detection-performance-improvement)
 - [Enhance the task-specific posterior on customized dataset](#enhance-the-task-specific-posterior-on-customized-dataset)
 - [Thanks](#thanks)
 - [Cite us](#cite-us)
 
 ## Requirements
+You can refer to the `requirements.txt` file to download all the necessary dependencies.
 
-- torch 1.8.2+cu102
-- numpy 1.24.4
-- scikit-learn 1.10.1
-- rdkit 2022.9.5
+The main library versions are as follows:
+
+- torch == 1.8.2+cu102
+- numpy == 1.24.4
+- scikit-learn == 1.10.1
+- rdkit == 2022.9.5
 
 ## Datasets
 
-- **Pre-training dataset:** We randomly extract 1 million unlabeled molecules from <u>[ChemBERTa](https://arxiv.org/abs/2010.09885)</u> to form the contrastive pre-training dataset and save them in the `pubchem-1m-clean.csv` file. You can download it <u>[here](https://drive.google.com/file/d/1FO_otxK3WHA629Xu1oseDWJPPJCUbgu5/view?usp=sharing)</u> and place it in the `/dataset` folder.
+- **Pre-training dataset:** We randomly extract 1 million unlabeled molecules
+  from <u>[ChemBERTa](https://arxiv.org/abs/2010.09885)</u> to form the contrastive pre-training dataset and save them
+  in the `pubchem-1m-clean.csv` file. You can download
+  it <u>[here](https://drive.google.com/file/d/1FO_otxK3WHA629Xu1oseDWJPPJCUbgu5/view?usp=sharing)</u> and place it in
+  the `/dataset` folder.
 - **Downstream dataset:** we conduct experiments on 6 regression and 6 classification downstream datasets, including:
     - **Regression benchmarks:** ESOL (named as Delaney), FreeSolv, Lipo, QM7, QM8 and PDBbind.
     - **Classification benchmarks:** BACE, Tox21, HIV, BBBP, SIDER and ClinTox.
-    - All these datasets have been saved in the `/dataset` folder under the corresponding names. You can also find the original ones from <u>[MoleculeNet](https://moleculenet.org/datasets-1)</u>.
+    - All these datasets have been saved in the `/dataset` folder under the corresponding names. You can also find the
+      original ones from <u>[MoleculeNet](https://moleculenet.org/datasets-1)</u>.
+
+## Checkpoints
+- Please download the checkpoints <u>[here](https://drive.google.com/file/d/1SL-9XFXAYqpZrf-aUCzpI2SRJVDWyJ5W/view?usp=sharing)</u>, and place in the project as directory `/result`.
+- All the (pretrain / downstream) results reported in the paper are derived from the provided checkpoints, which can be reproduced by the scripts in Stage (a), Stage (b) and Stage (c).
+- **⭐ Note: Before performing each of the following experiments, please carefully check the corresponding hyperparameter settings provided in the checkpoints.**
 
 ## Stage (a): Pre-training to learn contrastive prior
 
-Run the script **[0-pretrain.py](0-pretrain.py)** by the following command for contrastive prior learning. (For the detailed description, please refer to **Section 3.3 Learn contrastive prior from unlabeled dataset** in the paper)
+Run the script **[0-pretrain.py](0-pretrain.py)** by the following command for contrastive prior learning. (For the
+detailed description, please refer to **Section 3.3 Learn contrastive prior from unlabeled dataset** in the paper)
 
 ```bash 
 python 0-pretrain.py --batch_size 512 --epochs 50 --save_dir results/pretrain --pretrain_data_name pubchem-1m-clean 
 ```
 
-The pre-training MPNN encoder will be saved as `/results/pretrain/pretrain_encoder.pt`, while the transformation header will be saved as `/results/pretrain/pretrain_header.pt`.
+The pre-training MPNN encoder will be saved as `/results/pretrain/pretrain_encoder.pt`, while the transformation header
+will be saved as `/results/pretrain/pretrain_header.pt`.
 
 **Note: How to accelerate pre-training?**
 
-We recommend using a _cache mechanism_ to speed up the pre-training process as follows, because we have found in practice that the main overhead of the pretraining process comes from the augmentation operations on contrastive samples.
+We recommend using a _cache mechanism_ to speed up the pre-training process as follows, because we have found in
+practice that the main overhead of the pretraining process comes from the augmentation operations on contrastive
+samples.
 
-* Step 1: Run the script [prepare_pretrain_cache.py](dataset/prepare_pretrain_cache.py) to generate and save the augmented sample pairs in advance. This will save the batch augmented samples, with the name `smiles_to_contra_graph_batch_0.pkl`, to the `/pubchem-1m-clean-cache` folder. You can download the preprocessed cache file [here](https://drive.google.com/file/d/1w6fz1X1IF00UigEjmzh6UbTOvrqKhtPk/view?usp=sharing) and extract it to the /dataset folder.
+* Step 1: Run the script [prepare_pretrain_cache.py](dataset/prepare_pretrain_cache.py) to generate and save the
+  augmented sample pairs in advance. This will save the batch augmented samples, with the
+  name `smiles_to_contra_graph_batch_0.pkl`, to the `/pubchem-1m-clean-cache` folder. You can download the preprocessed
+  cache file [here](https://drive.google.com/file/d/1w6fz1X1IF00UigEjmzh6UbTOvrqKhtPk/view?usp=sharing) and extract it
+  to the /dataset folder.
 
-* Step 2: Run the following command to use cache for accelerating the pretraining process (on an 11GB NVIDIA GeForce 2080Ti GPU, each epoch takes ~ 30 minutes).
+* Step 2: Run the following command to use cache for accelerating the pretraining process (on an 11GB NVIDIA GeForce
+  2080Ti GPU, each epoch takes ~ 30 minutes).
 
 ```bash
 python 0-pretrain.py --batch_size 512 --epochs 50 --save_dir results/pretrain --pretrain_data_name pubchem-1m-clean --use_pretrain_data_cache True
@@ -67,25 +98,29 @@ python 0-pretrain.py --batch_size 512 --epochs 50 --save_dir results/pretrain --
 
 ## Stage (b): Infer enhanced task-specific posterior
 
-**CPBayesMPP:** In downstream tasks, you can use the following commands to infer the enhanced task-specific posterior (Remember to move the pre-trained folder `results/pretrain` into the folder `results/cl/pretrain`).
+**CPBayesMPP:** In downstream tasks, you can use the following commands to infer the enhanced task-specific posterior (
+Remember to move the pre-trained folder `results/pretrain` into the folder `results/cl/pretrain`).
 
 ```bash
-python 1-train.py --data_name delaney --train_strategy cl --epoch 200 --split_type random --split_sizes 0.5 0.2 0.3
+python 1-train.py --data_name delaney --train_strategy CPBayesMPP --epoch 200 --split_type random --split_sizes 0.5 0.2 0.3
 ```
 
-This will output the trained model to the `results/cl/random_split/delaney_checkpoints` folder, and save the variational parameters under the corresponding `seed_i/model` for each random seed i.
+This will output the trained model to the `results/cl/random_split/delaney_checkpoints` folder. The prediction on the test set can be found in the file `seed_i/preds.csv`, and the variational parameters can be found in the file `seed_i/model`, for each random seed i.
 
-**BayesMPP:** For comparison, you can run the following command, which will train the model using an uninformative prior.
+**BayesMPP:** For comparison, you can run the following command, which will train the model using an uninformative
+prior.
 
 ```bash
-python 1-train.py --data_name delaney --train_strategy cd --epoch 200 --split_type random --split_sizes 0.5 0.2 0.3
+python 1-train.py --data_name delaney --train_strategy BayesMPP --epoch 200 --split_type random --split_sizes 0.5 0.2 0.3
 ```
 
 **Notes:**
 
-- The `--train_strategy` parameter can be set to `cl` or `cd` for training, respectively. `cl` means contrastive learning with contrastive prior, and `cd` means concrete dropout with uninformative prior.
-- In regression tasks, we use `random split` with a `50/20/30` ratio, while in classification tasks, we use `scaffold split` with a `80/10/10` ratio.
-- See more details in the section **4.4 Model Training Detail** in the paper.
+- The `--train_strategy` parameter can be set to `CPBayesMPP` or `BayesMPP` for training, respectively. `CPBayesMPP`
+  means contrastive learning with contrastive prior, and `BayesMPP` means concrete dropout with uninformative prior.
+- In regression tasks, we use `random split` with a `50/20/30` ratio, while in classification tasks, we
+  use `scaffold split` with a `80/10/10` ratio.
+- See more details in the Section "**Model Training Detail**" in the paper.
 
 ## Stage (c): Enhanced-posterior prediction case studies
 
@@ -95,43 +130,37 @@ python 1-train.py --data_name delaney --train_strategy cd --epoch 200 --split_ty
 
 ### Case study 1. Prediction accuracy Improvement
 
-**Step (1):** Evaluate the prediction performance of the trained model with contrastive prior and uninformative prior, respectively.
-(RMSE for regression tasks and AUC-ROC for classification tasks)
+The training logs for different training strategies have been saved to the corresponding folders during the training
+process. For example, the training logs of the Delaney dataset under the CPBayesMPP strategy can be found
+in `result/CPBayesMPP/random_split/delaney_checkpoints/logger.log`.
 
-```bash 
-python 2-1-predict.py --data_name delaney --train_strategy cl --split_type random
-```
+The average performance (RMSE/AUC-ROC for regression/classification datasets, respectively) across 8 random seeds for
+this dataset can be found at the end of the log.
 
-```bash 
-python 2-1-predict.py --data_name delaney --train_strategy cd --split_type random
-```
+Note that different hyperparameter settings or environments may affect predictive performance, as discussed in
+Supplementary Information Section 5.2. Therefore, to ensure a fair comparison, we keep the hyperparameter settings
+consistent for both BayesMPP and CPBayesMPP across all datasets. (Please refer to the `logger.log` file for the
+hyperparameter settings.)
 
-The prediction performance results will be saved as `delaney_metric.csv` in the corresponding folders.
+We believe that the prediction errors should remain within the standard deviation (±) shown in Tables 1 and 2.
 
-**Step (2):** Calculate the statistics of the prediction performance improvement (mean and std under 8 random seeds).
+Additionally, CPBayesMPP (with informative prior) should consistently outperform BayesMPP (with non-informative prior)
+in predictive performance (RMSE/AUC-ROC).
 
-```bash
-python 2-2-visualize_predict_performance.py --data_name delaney --train_strategy cl
-```
-
-```bash
-python 2-2-visualize_predict_performance.py --data_name delaney --train_strategy cd
-```
-
-**Notes:** See more details in the section **5.1 Predictive performance improvement** in the paper.
+**Notes:** See more details in the Section "**Predictive performance improvement**" in the paper.
 
 <details>
   <summary><b>Click here for the results!</b></summary>
 
 <b>Performance comparison (RMSE, the lower the better) of different methods on 6 regression datasets</b>
 
-| ![Alts](figures/RMSE%20comparison%20on%206%20regression%20datasets/RMSE%20comparison%20on%206%20regression%20datasets.JPG) |
-|----------------------------------------------------------------------------------------------------------------------------|
+| ![Alts](figures/RMSE_comparison_on_6_regression_datasets/RMSE_comparison_on_6_regression_datasets.JPG) |
+|-------------------------------------------------------------|
 
 <b>Performance comparison (AUC-ROC, the higher the better) of different methods on 6 classification datasets</b>
 
-| ![Alts](figures/AUC-ROC%20comparison%20on%206%20classification%20datasets/AUC-ROC%20comparison%20on%206%20classification%20datasets.JPG) |
-|------------------------------------------------------------------------------------------------------------------------------------------|
+| ![Alts](figures/AUC-ROC_comparison_on_6_classification_datasets/AUC-ROC_comparison_on_6_classification_datasets.jpg) |
+|--------------------------------------------------------------------|
 
 </details>
 
@@ -139,51 +168,95 @@ python 2-2-visualize_predict_performance.py --data_name delaney --train_strategy
 
 ### Case study 2. Uncertainty quantification performance improvement
 
-**Step (1):** Evaluate the prediction uncertainty of the model trained with contrastive prior and uninformative prior, respectively.
+**Please note that before starting the UQ experiments, ensure you have re-run Stage (b) to obtain `checkpoints` for all
+datasets, or have downloaded the provided one and placed them in the specified path.**
 
-```bash
-python 3-1-uncertainty_predict.py --data_name delaney --train_strategy cl --split_type random
-```
+**Step (1):** Check the uncertainty prediction
+files (`results/CPBayesMPP/random_split/delaney_checkpoints/seed_123/preds.csv`) for each dataset, which contain all the
+data required for the uncertainty quantification (UQ) experiments, including:
 
-```bash
-python 3-1-uncertainty_predict.py --data_name delaney --train_strategy cd --split_type random
-```
+- `pred`: The output prediction of the model.
+- `label`: True label.
+- `alea_unc`: The Aleatoric uncertainty.
+- `epis_unc`: The Epistemic uncertainty.
 
-**Step (2):** Plot the uncertainty calibration curves.
+**Step (2):** Plot the uncertainty calibration curves (Points) for regression datasets.
 
-```bash
-python 3-2-visualize_uncertainty.py --data_name delaney --split_type random --visualize_type auco --uncertainty_type aleatoric
-```
+- **① Ranking-based method and auco:** One method to measure uncertainty quantification (UQ) capability is to evaluate
+  how the error of samples varies with changes in uncertainty. We sort all test set samples by their uncertainties (as
+  defined in Eqn. (18)) from high to low. We then iteratively remove the samples with highest uncertainties and
+  calculate the uncertainty of the remaining ones.
+  ```bash
+  python 2-visualize_uq.py --visualize_type auco --data_name delaney --split_type random --uncertainty_type aleatoric 
+  ```
+
+- **② Confidence-based method and AUCE:** One limitation of the ranking-based method is that it ignores the actual value
+  of uncertainty. For example, when the error of a sample is 0.5, we expect its uncertainty to also be 0.5. Therefore,
+  Confidence based method is used to measure the consistency between uncertainty and error. Specifically, for a sample
+  𝐱, Confidence based calibration interprets its prediction and uncertainty as the mean and the variance of a Gaussian
+  distribution.
+  ```bash
+  python 2-visualize_uq.py --visualize_type auce --data_name delaney --split_type random --uncertainty_type aleatoric 
+  ```
+
+- **③ Error-based method and ENCE:** Unlike Confidence-based calibration that consider confidence intervals, Error-based
+  calibration directly compares uncertainty with prediction error.
+  ```bash
+  python 2-visualize_uq.py --visualize_type ence --data_name delaney --split_type random --uncertainty_type aleatoric 
+  ```
+
+- **④ Coefficient of variation C_v:** The Coefficient of Variation C_v is used to measure the uncertainty dispersion.
+  ```bash
+  python 2-visualize_uq.py --visualize_type Cv --data_name delaney --split_type random --uncertainty_type aleatoric 
+  ```
+
+- The results will be saved in the folder `/figures/Uncertainty_calibration_curves_for_regression_datasets`.
+
+**Step (3):** Plot the uncertainty calibration curves for classification datasets.
+
+- Expected calibration error (ECE): In a binary classification task, the model’s output can serve as both a prediction
+  probability and an indicator of uncertainty. For example, for a given sample x, if its output is y = 0.95, we can
+  confidently conclude that it belongs to the positive class. In contrast, if the output is y = 0.55, our confidence in
+  the prediction decreases, since the sample might also belong to the negative class. ECE is an uncertainty metric used
+  to measure the correlation between uncertainty and predicted error.
+- The results will be saved in the folder `/figures/Uncertainty_calibration_curves_for_classification_datasets`.
+- 
+  ```bash
+  python 2-visualize_uq.py --visualize_type ece --data_name bace --split_type scaffold
+  ```
 
 **Notes:**
 
-* Specify `--uncertainty_type` as `aleatoric`, `epistemic` or `total` to visualize the different uncertainty calibration curves.
-* Set `--visualize_type auco` and `--split_type random` for regression tasks while `--visualize_type ece` and `--split_type scaffold` for classification ones.
-* Regression uncertainty curves will be saved in the folder `/figures/Uncertainty calibration curves for regression datasets` while classification ones will be saved in the folder `/figures/Uncertainty calibration curves for classification datasets`.
-* See more details in the section **5.2 Uncertainty quantification performance improvement** in the paper.
+* Specify `--uncertainty_type` as `aleatoric`, `epistemic` or `total` to visualize the different uncertainty calibration
+  curves.
+* Set `--split_type random` for regression tasks while and `--split_type scaffold` for classification ones.
+* Regression uncertainty curves will be saved in the
+  folder `/figures/Uncertainty calibration curves for regression datasets` while classification ones will be saved in
+  the folder `/figures/Uncertainty calibration curves for classification datasets`.
+* See more details in the Section "**Uncertainty quantification performance improvement**" in the paper.
 
 <details>
     <summary><b>Click here for the results!</b></summary>
 
 <b>Uncertainty Calibration Curves for ELSO dataset</b>
 
-| ![Alts](figures/Uncertainty%20calibration%20curves%20for%20regression%20datasets/ESOL%20Aleatoric%20Uncertainty.JPG) | ![Alts](figures/Uncertainty%20calibration%20curves%20for%20regression%20datasets/ESOL%20Epistemic%20Uncertainty.JPG) | ![Alts](figures/Uncertainty%20calibration%20curves%20for%20regression%20datasets/ESOL%20Total%20Uncertainty.JPG) |
-|----------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| ![Alts](figures/Uncertainty_calibration_curves_for_regression_datasets/AUCO/ESOL_Aleatoric_Uncertainty.JPG) | ![Alts](figures/Uncertainty_calibration_curves_for_regression_datasets/AUCO/ESOL_Epistemic_Uncertainty.JPG) | ![Alts](figures/Uncertainty_calibration_curves_for_regression_datasets/AUCO/ESOL_Total_Uncertainty.JPG) |
+|--------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------|
 
 <b>AUCO Performance improvement on regression datasets:</b>
 
-| ![Alts](figures/AUCO%20comparision%20on%206%20regression%20datasets/AUCO%20comparision%20on%206%20regression%20datasets.JPG) |
-|------------------------------------------------------------------------------------------------------------------------------|
+| ![Alts](figures/AUCO_comparision_on_6_regression_datasets/AUCO_comparision_on_6_regression_datasets.JPG) |
+|--------------------------------------------------------------|
 
 <b>Uncertainty Calibration Curves for Classification dataset</b>
 
-| ![Alts](figures/Uncertainty%20calibration%20curves%20for%20classification%20datasets/BACE.JPG) | ![Alts](figures/Uncertainty%20calibration%20curves%20for%20classification%20datasets/HIV.JPG) | ![Alts](figures/Uncertainty%20calibration%20curves%20for%20classification%20datasets/BBBP.JPG) |
-|------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|
+| ![Alts](figures/Uncertainty_calibration_curves_for_classification_datasets/BACE.JPG) | ![Alts](figures/Uncertainty_calibration_curves_for_classification_datasets/HIV.JPG) | ![Alts](figures/Uncertainty_calibration_curves_for_classification_datasets/BBBP.JPG) |
+|-------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
 
 <b>ECE Performance improvement on classification datasets</b>
 
-| ![Alts](figures/ECE%20comparision%20on%203%20classification%20datasets/ECE%20comparision%20on%203%20classification%20datasets.JPG) |
-|------------------------------------------------------------------------------------------------------------------------------------|
+| ![Alts](figures/ECE_comparision_on_3_classification_datasets/ECE_comparision_on_3_classification_datasets.JPG) |
+|-----------------------------------------------------------------|
 
 </details>
 
@@ -191,47 +264,62 @@ python 3-2-visualize_uncertainty.py --data_name delaney --split_type random --vi
 
 ### Case study 3. Active learning performance improvement
 
-**Step (1):** Train the model by 4 strategies:
+**Step (1):** The model starts training with a small portion of the dataset, comprising 20% of the total training set.
+Gradually, 5% of the remaining data is selected to expand the training pool, and the model is re-trained with this
+expanded pool. Three selection strategies are used for comparison: **(1) "Random Selection":** 5% of the data is
+randomly chosen with equal probability. **(2) "Explorative":** The top 5% of samples with the highest Epistemic
+uncertainty is selected. **(3) "Oracle":** The top 5% of samples with the highest prediction error (in pratice
+unavailable, output from CPBayesMPP) is chosen.
 
-* ① BayesMPP + Random Learning
-* ② BayesMPP + Active Learning
-* ③ CPBayesMPP + Random Learning
-* ④ CPBayesMPP + Active Learning
+Now, train the model by 5 strategies:
+
+- ① BayesMPP + Random Learning
+  ```bash
+  python 3-1-active_train.py --data_name freesolv --train_strategy BayesMPP+AL --al_type random --epoch 20 --splite_type random --split_size 0.5 0.2 0.3
+  ```
+- ② BayesMPP + Active Learning
+  ```bash
+  python 3-1-active_train.py --data_name freesolv --train_strategy BayesMPP+AL --al_type explorative --epoch 40 --splite_type random --split_size 0.5 0.2 0.3
+  ```
+- ③ CPBayesMPP + Random Learning
+  ```bash
+  python 3-1-active_train.py --data_name freesolv --train_strategy CPBayesMPP+AL --al_type random --epoch 20 --splite_type random --split_size 0.5 0.2 0.3
+  ```
+- ④ CPBayesMPP + Active Learning
+  ```bash
+  python 3-1-active_train.py --data_name freesolv --train_strategy CPBayesMPP+AL --al_type explorative --epoch 40 --splite_type random --split_size 0.5 0.2 0.3
+  ```
+- ⑤ CPBayesMPP + Oracle Learning
+  ```bash
+  python 3-1-active_train.py --data_name freesolv --train_strategy CPBayesMPP+AL --al_type oracle --epoch 40 --splite_type random --split_size 0.5 0.2 0.3
+  ```
+
+**Step (2):** Visualize the active learning curves, the results will be saved in the folder `/figures/Performance_changes_in_Active_Learning`.
 
 ```bash
-python 4-1-active_train.py --data_name freesolv --train_strategy cd --active_learning_type random --init_train_step 100 --active_train_step 30
-```
-
-```bash
-python 4-1-active_train.py --data_name freesolv --train_strategy cd --active_learning_type explorative --init_train_step 100 --active_train_step 200
-```
-
-```bash
-python 4-1-active_train.py --data_name freesolv --train_strategy cd --active_learning_type random --init_train_step 200 --active_train_step 30
-```
-
-```bash
-python 4-1-active_train.py --data_name freesolv --train_strategy cl --active_learning_type explorative --init_train_step 150 --active_train_step 300
-```
-
-**Step (2):** Visualize the active learning curves.
-
-```bash
-python 4-2-visualize_active.py --data_name freesolv
+python 3-2-visualize_active.py --data_name freesolv
 ```
 
 **Notes:**
 
-* For fairness, due to the difficulty of gradient descent on explorative samples, we appropriately increase the number of gradient descent iterations for Active Learning strategy.
-* See more details in the section **5.3 Active learning performance improvement** in the paper.
+* Specify `--data_name` as `delaney`, `bace` or `bbbp` to perform active learning on different datasets.
+
+- As described in Table S1, for regression datasets, we use a random split of `50/20/30` for Train/Valid/Test sets. For
+  classification datasets, we apply a scaffold split of `80/10/10`.
+
+- For the random strategy, the re-training process on each dataset involves 20 epochs. For the Explorative and Oracle
+  strategies, the number of iterations is doubled. As in practice, we find more re-training steps help the model better
+  explore unseen chemical space, improving the accuracy of uncertainty (error) estimation.
+
+- See more details in the Section "**Active learning performance improvement**" in the paper.
 
 <details>
   <summary><b>Click here for the results!</b></summary>
 
 <b>Performance changes in Active Learning</b>
 
-| ![Alts](figures/Performance%20changes%20in%20Active%20Learning/ESOL%20(Regression%20dataset).JPG) | ![Alts](figures/Performance%20changes%20in%20Active%20Learning/FreeSolv%20(Regression%20dataset).JPG) | ![Alts](figures/Performance%20changes%20in%20Active%20Learning/BACE%20(Classification%20dataset).JPG) | ![Alts](figures/Performance%20changes%20in%20Active%20Learning/BBBP%20(Classification%20dataset).JPG) |
-|---------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|
+| ![Alts](figures/Performance_changes_in_Active_Learning/delaney.JPG) | ![Alts](figures/Performance_changes_in_Active_Learning/freesolv.JPG) | ![Alts](figures/Performance_changes_in_Active_Learning/bace.JPG) | ![Alts](figures/Performance_changes_in_Active_Learning/bbbp.JPG) |
+|---------------------------------------------------------------------|-----------------------------------------------------------|------------------------------------------------------------|-------------------------------------------------------------|
 
 </details>
 
@@ -239,60 +327,109 @@ python 4-2-visualize_active.py --data_name freesolv
 
 ### Case study 4. Prior Prediction performance of contrastive prior
 
+**⭐Predictive feature similarity**
+
 **Step (1):** Predict Feature similarity using contrastive prior and uninformative prior, respectively.
 
 ```bash
-python 5-1-prior_predict.py --data_name delaney --train_strategy cl --prior_predict_type prior_similarity
+python 4-1-prior_predict.py --data_name delaney --prior BayesMPP+Prior --predict_type similarity
 ```
 
 ```bash
-python 5-1-prior_predict.py --data_name delaney --train_strategy cd --prior_predict_type prior_similarity
+python 4-1-prior_predict.py --data_name delaney --prior CPBayesMPP+Prior --predict_type similarity
 ```
 
-**Step (2):** Visualize the feature similarity, the results will be saved in the folder `/figures/Prior prediction similarity`.
+**Step (2):** Visualize the feature similarity, the results will be saved in the
+folder `/figures/Prior_prediction_similarity`.
 
 ```bash
-python 5-2-visualize_prior.py --data_name delaney --train_strategy cl --visualize_type prior_similarity
-```
-
-```bash
-python 5-2-visualize_prior.py --data_name delaney --train_strategy cd --visualize_type prior_similarity
-```
-
-**Step (3):** Predict Feature distinctiveness using different priors.
-
-```bash
-python 5-1-prior_predict.py --data_name delaney --train_strategy cl --prior_predict_type prior_latent
+python 4-2-visualize_prior.py --data_name delaney --prior BayesMPP+Prior --visualize_type similarity
 ```
 
 ```bash
-python 5-1-prior_predict.py --data_name delaney --train_strategy cd --prior_predict_type prior_latent
+python 4-2-visualize_prior.py --data_name delaney --prior CPBayesMPP+Prior --visualize_type similarity
 ```
-
-**Step (4):** Visualize the feature distinctiveness, the results will be saved in the folder `/figures/Prior prediction distinctiveness`.
-
-```bash
-python 5-2-visualize_prior.py --data_name delaney --train_strategy cl --visualize_type prior_latent
-```
-
-```bash
-python 5-2-visualize_prior.py --data_name delaney --train_strategy cd --visualize_type prior_latent
-```
-
-**Notes:** See more details in the section **5.4 Prior Prediction performance of contrastive prior** in the paper.
 
 <details>
   <summary><b>Click here for the results!</b></summary>
 
 <b>Feature similarity between samples.</b>
 
-| ![Alts](figures/Prior%20prediction%20similarity/ESOL%20Uninformative%20Prior.JPG) | ![Alts](figures/Prior%20prediction%20similarity/ESOL%20Contrastive%20Prior.JPG) |
-|-----------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
+| ![Alts](figures/Prior_prediction_similarity/ESOL_Uninformative_Prior.JPG) | ![Alts](figures/Prior_prediction_similarity/ESOL_Contrastive_Prior.JPG) |
+|------------------------------------------------|------------------------------------------------|
 
-<b>Feature distinctiveness between samples.</b>
+</details>
 
-| ![Alts](figures/Prior%20prediction%20distinctiveness/ESOL%20Uninformative%20Prior.JPG) | ![Alts](figures/Prior%20prediction%20distinctiveness/ESOL%20Contrastive%20Prior.JPG) |
-|----------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+**⭐Predictive feature distinctiveness**
+
+**Step (1):** Predict Feature distinctiveness using different priors.
+
+```bash
+python 4-1-prior_predict.py --data_name delaney --prior BayesMPP+Prior --predict_type latent
+```
+
+```bash
+python 4-1-prior_predict.py --data_name delaney --prior CPBayesMPP+Prior --predict_type latent
+```
+
+**Step (2):** Visualize the feature distinctiveness, the results will be saved in the folder `/figures/Prior_prediction_distinctiveness`.
+
+```bash
+python 4-2-visualize_prior.py --data_name delaney --prior BayesMPP+Prior --visualize_type latent
+```
+
+```bash
+python 4-2-visualize_prior.py --data_name delaney --prior CPBayesMPP+Prior --visualize_type latent
+```
+
+**Notes:** See more details in the Section "**Prior Prediction performance of contrastive prior**" in the paper.
+
+
+<details>
+  <summary><b>Click here for the results!</b></summary>
+
+<b>Feature similarity between samples.</b>
+
+| ![Alts](figures/Prior_prediction_latent/ESOL_Uninformative_Prior.JPG) | ![Alts](figures/Prior_prediction_latent/ESOL_Contrastive_Prior.JPG) |
+|--------------------------------------------|--------------------------------------------|
+
+</details>
+
+<hr style="border: 0.1px">
+
+### Case study 5. Out-of-distribution (OOD) detection performance improvement
+
+Here, we used scaffold split to divide the train/valid/test sets. This splitting method ensures that there is no
+scaffold overlap between different sets. As a result, the molecules in the test set are considered as OOD data relative
+to those in the training set. Then, CPBayesMPP (informative prior) and BayesMPP (uninformative prior).
+
+Then, Ranking-based method and AUCO are used to measure the OOD detection performance.
+
+**Step (1):** Train the model using CPBayesMPP and BayesMPP strategies.
+
+```bash
+python 5-1-ood_train.py --data_name delaney --train_strategy BayesMPP+OOD --epoch 200 --split_type scaffold --split_sizes 0.5 0.2 0.3 --kl_weight 10
+```
+
+```bash
+python 5-1-ood_train.py --data_name delaney --train_strategy CPBayesMPP+OOD --epoch 200 --split_type scaffold --split_sizes 0.5 0.2 0.3 --kl_weight 10
+```
+
+**Step (2):** Visualize the OOD detection performance.
+
+```bash
+python 5-2-visualize_ood_uq.py --data_name delaney --uncertainty_type aleatoric
+```
+
+**Notes:** See more details in the Section "**OOD detection performance improvement**" in the paper.
+
+<details>
+  <summary><b>Click here for the results!</b></summary>
+
+<b>OOD detection performance improvement.</b>
+
+| ![Alts](figures/OOD_detection_Performance_Improvement/ESOL_Aleatoric_Uncertainty.JPG) | ![Alts](figures/OOD_detection_Performance_Improvement/ESOL_Epistemic_Uncertainty.JPG) | ![Alts](figures/OOD_detection_Performance_Improvement/ESOL_Total_Uncertainty.JPG) |
+|----------------------------------------------------------|----------------------------------------------------------|----------------------------------------------------------|
 
 </details>
 
@@ -300,11 +437,14 @@ python 5-2-visualize_prior.py --data_name delaney --train_strategy cd --visualiz
 
 ## Enhance the task-specific posterior on customized dataset
 
-**We recommend you to run the scripts above to reproduce our experiments before attempting to train the model using your custom dataset to familiarize yourself with the pre-training and posterior inference processes of the CPBayesMPP.**
+**We recommend you to run the scripts above to reproduce our experiments before attempting to train the model using your
+custom dataset to familiarize yourself with the pre-training and posterior inference processes of the CPBayesMPP.**
 
 **Step (1): Prepare your pre-training dataset.**
 
-Please refer to `pubchem-1m-clean.csv` file <u>[here](https://drive.google.com/file/d/1FO_otxK3WHA629Xu1oseDWJPPJCUbgu5/view?usp=sharing)</u> to store your unlabeled dataset in rows according to the following format:
+Please refer to `pubchem-1m-clean.csv`
+file <u>[here](https://drive.google.com/file/d/1FO_otxK3WHA629Xu1oseDWJPPJCUbgu5/view?usp=sharing)</u> to store your
+unlabeled dataset in rows according to the following format:
 
 |        pretraining_dataset.csv         |
 |:--------------------------------------:|
@@ -316,11 +456,13 @@ Please refer to `pubchem-1m-clean.csv` file <u>[here](https://drive.google.com/f
 |    Nc1nc2ccc(F)c(F)c2n1Cc1ccccc1Br     |
 |                  ...                   |
 
-Then, run the script [dataset/prepare_pretrain_cache.py](dataset/prepare_pretrain_cache.py) to generate contrastive tasks cache for accelerating the pre-training process.
+Then, run the script [dataset/prepare_pretrain_cache.py](dataset/prepare_pretrain_cache.py) to generate contrastive
+tasks cache for accelerating the pre-training process.
 
 **Step (2): Pre-training for contrastive prior.**
 
-Run the script [0-pretrain.py](0-pretrain.py) to learn pre-train the model and replace the parameter `--pretrain_data_name` with your own dataset name.
+Run the script [0-pretrain.py](0-pretrain.py) to learn pre-train the model and replace the
+parameter `--pretrain_data_name` with your own dataset name.
 
 ```bash
 python 0-pretrain.py --batch_size 512 --epochs 50 --save_dir results/pretrain --pretrain_data_name your_pretrain_data_name --use_pretrain_data_cache
@@ -350,29 +492,31 @@ Save your downstream datasets in folder `/dataset` by following format:
 
 **Step (4): Infer task-specific posterior.**
 
-Run the script [1-train.py](1-train.py) to infer the task-specific posterior and replace the parameter `--data_name` with your own dataset name.
+Run the script [1-train.py](1-train.py) to infer the task-specific posterior and replace the parameter `--data_name`
+with your own dataset name.
 
 ```bash
-python 1-train.py --data_name your_dataneme --train_strategy cl --epoch 200 --split_type random --split_sizes 0.5 0.2 0.3
+python 1-train.py --data_name your_dataneme --train_strategy CPBayesMPP --epoch 200 --split_type random --split_sizes 0.5 0.2 0.3
 ```
+
+Check the file `results/CPBayesMPP/random_split/your_dataname_checkpoints/seed_123/preds.csv` and the result format will be as follows:
+
+|      smiles      | preds | label | aleatoric uncertainty | epistemic uncertainty |
+|:----------------:|:-----:|:-----:|:---------------------:|:---------------------:|
+| COc2ncc1nccnc1n2 | -1.15 | -1.11 |         0.43          |         0.12          |
+|   Brc1ccccc1Br   | -3.42 | -3.50 |         0.08          |         0.03          |
+|    O=C1CCCCC1    | -0.53 | -0.6  |         0.10          |         0.06          |
+|       ...        |  ...  |  ...  |          ...          |          ...          |
 
 **Step (5):  Posterior Prediction with
 Uncertainty Evaluation.**
 
-Run the script [3-1-uncertainty_predict.py](3-1-uncertainty_predict.py) to predict unseen molecules with uncertainty.
+Run the script [2-visualize_uq.py](2-visualize_uq.py) in Stage (c): case studies (1)~(5) and replace the parameter `--data_name`
+with your own dataset name to make uncertainty predictions.
 
-```bash
-python 3-1-uncertainty_predict.py --data_name your_dataname --train_strategy cl --split_type random
-```
-
-The result format will be as follows:
-
-|      smiles      | preds | aleatoric uncertainty | epistemic uncertainty |
-|:----------------:|:-----:|:---------------------:|:---------------------:|
-| COc2ncc1nccnc1n2 | -1.15 |         0.43          |         0.12          |
-|   Brc1ccccc1Br   | -3.42 |         0.08          |         0.03          |
-|    O=C1CCCCC1    | -0.53 |         0.10          |         0.06          |
-|       ...        |  ...  |          ...          |          ...          |
+  ```bash
+  python 2-visualize_uq.py --visualize_type auco --data_name your_dataname --split_type random --uncertainty_type aleatoric 
+  ```
 
 ## Thanks
 

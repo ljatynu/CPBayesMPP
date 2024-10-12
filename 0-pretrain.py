@@ -93,7 +93,7 @@ def pretrain_step(model: nn.Module,
 
         current_loss = running_loss / (i // iter_size + 1)
 
-        pbar.set_description(f"Epoch: {args.epoch}, Training - Loss: {current_loss:.4f}")
+        pbar.set_description(f"Epoch: {args.epoch}, Training - Loss: {current_loss:.4f}, Data Fitting: {loss.item():.4f}, Regularization: {lc_reg:.4f}")
 
     return running_loss / batch_num
 

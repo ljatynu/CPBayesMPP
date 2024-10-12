@@ -54,8 +54,8 @@ def get_total_batches(filename: str, batch_size: int) -> int:
     return total_batches
 
 
-filename = 'pubchem-1m-clean.csv'
-output_directory = 'pubchem-1m-clean-cache'
+filename = 'pubchem-10K-clean.csv'
+output_directory = 'dataset/pubchem-10K-clean-cache'
 batch_size = 512
 total_batches = get_total_batches(filename, batch_size)
 

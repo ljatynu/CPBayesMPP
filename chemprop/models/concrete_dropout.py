@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import torch
 from torch import nn
 import numpy as np
@@ -6,32 +8,43 @@ import numpy as np
 
 class ConcreteDropout(nn.Module):
     def __init__(self, layer, reg_acc, weight_regularizer=1e-6,
-                 dropout_regularizer=1e-5, init_min=0.1, init_max=0.1, depth=1):
+                 dropout_regularizer=1e-5, init_min=0.1, init_max=0.1, depth=1, train_strategy='cd'):
+        """
+        We use transfer_layer to contain the weight we transfer from the pre-trained model, in order to calculate the downstrean KL divergence.
+        """
         super(ConcreteDropout, self).__init__()
 
 
         self.weight_regularizer = weight_regularizer
         self.dropout_regularizer = dropout_regularizer
         self.layer = layer
+        self.transfer_layer = None
+        self.train_strategy = train_strategy
 
         self.reg_acc = reg_acc
         self.reg_acc.notify_loss(depth)
 
-        init_min = np.log(init_min) - np.log(1. - init_min)
-        init_max = np.log(init_max) - np.log(1. - init_max)
+        self.init_min = np.log(init_min) - np.log(1. - init_min)
+        self.init_max = np.log(init_max) - np.log(1. - init_max)
 
-        self.p_logit = nn.Parameter(torch.empty(1).uniform_(init_min, init_max))
-
+        self.p_logit = nn.Parameter(torch.empty(1).uniform_(self.init_min, self.init_max))
 
     def forward(self, x):
         p = torch.sigmoid(self.p_logit)
 
         out = self.layer(self._concrete_dropout(x, p))
 
+        # Calculate KL divergence
         if self.training:
             sum_of_square = 0
-            for param in self.layer.parameters():
-                sum_of_square += torch.sum(torch.pow(param, 2))
+            if self.train_strategy == 'cl':
+                for (param, transfer_param) in zip(self.layer.parameters(), self.transfer_layer.parameters()):
+                    sum_of_square += torch.sum(torch.pow(param - transfer_param, 2))  # Eqn (16) in the paper
+                    # Determine whether the values of the two are exactly equal???
+                    # print(torch.equal(param, transfer_param))
+            else:
+                for param in self.layer.parameters():
+                    sum_of_square += torch.sum(torch.pow(param, 2))
 
             # Pretraining: weights_regularizer = 1.0 * 1 / train_data_size
             # Downstream: weights_regularizer = 5.0 * 1 / train_data_size
@@ -69,6 +82,12 @@ class ConcreteDropout(nn.Module):
         x /= retain_prob
 
         return x
+
+    def record_transfer_layer(self, transfer_layer):
+        self.transfer_layer = deepcopy(transfer_layer)
+
+    def reset_dropout_rate(self):
+        self.p_logit = nn.Parameter(torch.empty(1).uniform_(self.init_min, self.init_max))
 
 
 class RegularizationAccumulator:

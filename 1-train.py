@@ -1,3 +1,4 @@
+import csv
 import logging
 import os
 
@@ -5,6 +6,7 @@ from argparse import Namespace, ArgumentParser
 from pprint import pformat
 from typing import Callable
 
+import numpy as np
 import torch
 from torch import nn
 from torch.optim import Optimizer
@@ -13,8 +15,9 @@ from chemprop.data import StandardScaler, MoleculeDataset
 from chemprop.data.utils import get_task_names, get_data, split_data, get_class_sizes
 from chemprop.nn_utils import param_count, NoamLR
 from chemprop.utils import create_logger, get_loss_func, get_metric_func, save_checkpoint, makedirs, build_optimizer, \
-    build_lr_scheduler
+    build_lr_scheduler, load_checkpoint
 from chemprop.train.evaluate import evaluate
+from utils.misc import save_prediction
 
 from utils.parsing import add_train_args, modify_train_args
 from rdkit import RDLogger
@@ -109,8 +112,6 @@ def run_training(args: Namespace, logger: logging.Logger):
     """
     info = logger.info  # info(message) will be save under logger.log file
 
-    info(pformat(vars(args)))
-
     # Load dataset
     info('Loading data...')
     data = get_data(path=args.data_path, args=args, logger=logger)
@@ -147,8 +148,10 @@ def run_training(args: Namespace, logger: logging.Logger):
         scaler = None
 
     # Get loss and metric functions
-    loss_func = get_loss_func(args)  # Heteroscedastic/BCEWithLogits Loss for Regression/Classification
+    loss_func = get_loss_func(args)  # Heteroscedastic/BCE With Logits Loss for Regression/Classification
     metric_func = get_metric_func(metric=args.metric)  # RMSE/AUC-ROC for Regression/Classification
+
+    args.pred_path = os.path.join(args.save_dir, 'preds.csv')
 
     # File path to save the model
     save_dir = os.path.join(args.save_dir, f'model')
@@ -160,9 +163,12 @@ def run_training(args: Namespace, logger: logging.Logger):
     info(f'Number of parameters = {param_count(model):,}')
 
     # Load pretrained model when contrastive learning
-    if args.train_strategy == 'cl':
+    if args.train_strategy == 'CPBayesMPP':
         info(f'Loading pretrain MPNN Model...')
         model.encoder.load_state_dict(torch.load(args.pretrain_encoder_path))
+        # Record the weight of transferred contrastive learning variational parameters for KL divergence calculation.
+        model.encoder.record_transfer_weight()
+        model.encoder.reset_dropout_rate()
 
     info('Moving model to cuda')
     model = model.cuda()
@@ -212,6 +218,32 @@ def run_training(args: Namespace, logger: logging.Logger):
         if best_score == val_scores:
             save_checkpoint(os.path.join(save_dir, 'model.pt'), model, scaler, args)
 
+    # Load the best model and evaluate on the test set
+    model = load_checkpoint(os.path.join(save_dir, 'model.pt'), cuda=args.cuda)
+    test_score, preds, ale_unc, epi_unc = evaluate(
+            model=model,
+            data=test_data,
+            num_tasks=args.num_tasks,
+            metric_func=metric_func,
+            batch_size=args.batch_size,
+            dataset_type=args.dataset_type,
+            scaler=scaler,
+            logger=logger,
+            sampling_size=args.sampling_size,
+            retain_predict_results=True
+        )
+    info(f'Seed {args.seed} test {args.metric} = {test_score:.6f}')
+
+    # Save the results
+    save_prediction(args,
+                    smiles=test_data.smiles(),
+                    labels=test_data.targets(),
+                    model_preds=preds,
+                    ale_uncs=ale_unc,
+                    epi_uncs=epi_unc)
+
+    return test_score
+
 
 def cross_validate_train(args: Namespace):
     """K-Fold training on a dataset.
@@ -219,21 +251,32 @@ def cross_validate_train(args: Namespace):
     :param args: Arguments.
     :return: None
     """
-    save_dir = args.save_dir
+    save_dir = os.path.join(args.save_dir,
+                             f'{args.data_name}_checkpoints')
+
+    # Get Logger
+    logger = create_logger(name='train', save_dir=save_dir)
+    logger.info(pformat(vars(args)))
+
+    all_scores = []
 
     for seed in args.seeds:
         args.seed = seed
 
         # Each seed splitting will be saved in a new folder .../seed_i/
         args.save_dir = os.path.join(save_dir,
-                                     f'{args.data_name}_checkpoints',
                                      f'seed_{args.seed}')
 
-        # Get Logger
-        logger = create_logger(name='train', save_dir=args.save_dir)
+
 
         # Run Training on current seed
-        run_training(args, logger)
+        test_score = run_training(args, logger)
+
+        all_scores.append(test_score)
+
+    all_scores = np.array(all_scores)
+    mean_score, std_score = np.nanmean(all_scores), np.nanstd(all_scores)
+    logger.info(f'Overall test {args.metric} = {mean_score:.6f} +/- {std_score:.6f}')
 
 
 if __name__ == '__main__':

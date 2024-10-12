@@ -63,7 +63,7 @@ class Header(nn.Module):
         if self.dataset_type == 'regression':
             output = self.output_layer(_output)
             logvar = self.logvar_layer(_output)
-            # Gaussian uncertainty only for regression, directly returning in this case
+            # Gaussian log-variance logvar only for regression
             return output, logvar
 
         if self.dataset_type == 'classification' and self.training:

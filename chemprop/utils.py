@@ -162,7 +162,6 @@ def load_args(path: str) -> Namespace:
     return torch.load(path, map_location=lambda storage, loc: storage)['args']
 
 
-
 def heteroscedastic_loss(true, mean, log_var):
     """
     Compute the heteroscedastic loss for regression.
