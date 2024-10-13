@@ -229,7 +229,7 @@ def run_training(args: Namespace, logger: logging.Logger):
             dataset_type=args.dataset_type,
             scaler=scaler,
             logger=logger,
-            sampling_size=args.sampling_size,
+            sampling_size=50,
             retain_predict_results=True
         )
     info(f'Seed {args.seed} test {args.metric} = {test_score:.6f}')

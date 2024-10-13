@@ -42,9 +42,9 @@ You can refer to the `requirements.txt` file to download all the necessary depen
 
 The main library versions are as follows:
 
-- torch == 1.8.2+cu102
+- torch == 1.10.0+cu113
 - numpy == 1.24.4
-- scikit-learn == 1.10.1
+- scikit-learn == 1.3.2
 - rdkit == 2022.9.5
 
 ## Datasets
@@ -61,7 +61,7 @@ The main library versions are as follows:
       original ones from <u>[MoleculeNet](https://moleculenet.org/datasets-1)</u>.
 
 ## Checkpoints
-- Please download the checkpoints <u>[here](https://drive.google.com/file/d/1SL-9XFXAYqpZrf-aUCzpI2SRJVDWyJ5W/view?usp=sharing)</u>, and place in the project as directory `/result`.
+- Please download the checkpoints <u>[here](https://drive.google.com/file/d/190jyJ7CMr09j4R82hs-nc8kxgADeGv6o/view?usp=sharing)</u>, and place in the project as directory `/result`.
 - All the (pretrain / downstream) results reported in the paper are derived from the provided checkpoints, which can be reproduced by the scripts in Stage (a), Stage (b) and Stage (c).
 - **⭐ Note: Before performing each of the following experiments, please carefully check the corresponding hyperparameter settings provided in the checkpoints.**
 
@@ -124,7 +124,7 @@ python 1-train.py --data_name delaney --train_strategy BayesMPP --epoch 200 --sp
 
 ## Stage (c): Enhanced-posterior prediction case studies
 
-**You can reproduce all experimental results in our paper through the following case studies.**
+**You can reproduce all experimental results in our paper through the following case studies. Due to the stochastic nature of the MC-Dropout neural network, there may be slight variations in the results. However, we believe that under most experimental settings, CPBayesMPP with contrastive learning priors should outperform BayesMPP with non-informative priors.**
 
 <hr style="border: 0.1px">
 
@@ -275,23 +275,23 @@ Now, train the model by 5 strategies:
 
 - ① BayesMPP + Random Learning
   ```bash
-  python 3-1-active_train.py --data_name freesolv --train_strategy BayesMPP+AL --al_type random --epoch 20 --splite_type random --split_size 0.5 0.2 0.3
+  python 3-1-active_train.py --data_name freesolv --train_strategy BayesMPP+AL --al_type random --epoch 20 --split_type random --split_size 0.5 0.2 0.3
   ```
 - ② BayesMPP + Active Learning
   ```bash
-  python 3-1-active_train.py --data_name freesolv --train_strategy BayesMPP+AL --al_type explorative --epoch 40 --splite_type random --split_size 0.5 0.2 0.3
+  python 3-1-active_train.py --data_name freesolv --train_strategy BayesMPP+AL --al_type explorative --epoch 40 --split_type random --split_size 0.5 0.2 0.3
   ```
 - ③ CPBayesMPP + Random Learning
   ```bash
-  python 3-1-active_train.py --data_name freesolv --train_strategy CPBayesMPP+AL --al_type random --epoch 20 --splite_type random --split_size 0.5 0.2 0.3
+  python 3-1-active_train.py --data_name freesolv --train_strategy CPBayesMPP+AL --al_type random --epoch 20 --split_type random --split_size 0.5 0.2 0.3
   ```
 - ④ CPBayesMPP + Active Learning
   ```bash
-  python 3-1-active_train.py --data_name freesolv --train_strategy CPBayesMPP+AL --al_type explorative --epoch 40 --splite_type random --split_size 0.5 0.2 0.3
+  python 3-1-active_train.py --data_name freesolv --train_strategy CPBayesMPP+AL --al_type explorative --epoch 40 --split_type random --split_size 0.5 0.2 0.3
   ```
 - ⑤ CPBayesMPP + Oracle Learning
   ```bash
-  python 3-1-active_train.py --data_name freesolv --train_strategy CPBayesMPP+AL --al_type oracle --epoch 40 --splite_type random --split_size 0.5 0.2 0.3
+  python 3-1-active_train.py --data_name freesolv --train_strategy CPBayesMPP+AL --al_type oracle --epoch 40 --split_type random --split_size 0.5 0.2 0.3
   ```
 
 **Step (2):** Visualize the active learning curves, the results will be saved in the folder `/figures/Performance_changes_in_Active_Learning`.

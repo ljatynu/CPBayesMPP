@@ -397,7 +397,7 @@ def add_active_train_args(parser: ArgumentParser):
     :param parser: An ArgumentParser.
     """
     # General arguments
-    parser.add_argument('--data_name', type=str, default='bace',
+    parser.add_argument('--data_name', type=str, default='freesolv',
                         help='Downstream task name')
     parser.add_argument('--train_strategy', type=str, default='CPBayesMPP+AL',
                         choices=['BayesMPP+AL', 'CPBayesMPP+AL'],
@@ -613,9 +613,9 @@ def add_ood_train_args(parser: ArgumentParser):
     :param parser: An ArgumentParser.
     """
     # General arguments
-    parser.add_argument('--data_name', type=str, default='freesolv',
+    parser.add_argument('--data_name', type=str, default='delaney',
                         help='Downstream task name')
-    parser.add_argument('--train_strategy', type=str, default='CPBayesMPP',
+    parser.add_argument('--train_strategy', type=str, default='CPBayesMPP+OOD',
                         choices=['BayesMPP+OOD', 'CPBayesMPP+OOD'],
                         help='Training strategy of downstream task.'
                              'BayesMPP means training with uninformative prior.'

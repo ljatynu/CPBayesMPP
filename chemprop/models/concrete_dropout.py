@@ -37,11 +37,10 @@ class ConcreteDropout(nn.Module):
         # Calculate KL divergence
         if self.training:
             sum_of_square = 0
-            if self.train_strategy == 'cl':
+            if self.train_strategy == 'CPBayesMPP' or self.train_strategy == 'CPBayesMPP+OOD' or self.train_strategy == 'CPBayesMPP+AL':
                 for (param, transfer_param) in zip(self.layer.parameters(), self.transfer_layer.parameters()):
                     sum_of_square += torch.sum(torch.pow(param - transfer_param, 2))  # Eqn (16) in the paper
-                    # Determine whether the values of the two are exactly equal???
-                    # print(torch.equal(param, transfer_param))
+
             else:
                 for param in self.layer.parameters():
                     sum_of_square += torch.sum(torch.pow(param, 2))
