@@ -1,20 +1,13 @@
 import os
 
-import pandas as pd
-
 from argparse import Namespace, ArgumentParser
-
-from sklearn.utils import column_or_1d, check_consistent_length
-from typing import Tuple
-
-from scipy.special import erfinv
 
 import seaborn as sns
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from utils.metric import calculate_auco_curve
+from utils.metric import calculate_auco_curve, calculate_average_ece
 from utils.metric import calculate_auce_curve
 from utils.metric import calculate_ence_points
 from utils.metric import calculate_coefficient_of_variation
@@ -83,6 +76,9 @@ def visualize_auco_curve(args: Namespace):
     BayesMPP_auco = round(BayesMPP_auco, args.decimal_places)
     CPBayesMPP_auco = round(CPBayesMPP_auco, args.decimal_places)
 
+    print(f'Perforamce Improvement {round((BayesMPP_auco - CPBayesMPP_auco) / BayesMPP_auco * 100, args.decimal_places)}%')
+
+
     # Plot Oracle uncertainty calibration curve
     plt.plot(confidence_percentile, BayesMPP_Oracle_mean, color=green, linestyle='dashed',linewidth=4, alpha=0.7)
     plt.plot(confidence_percentile, CPBayesMPP_Oracle_mean, color=blue, linestyle='dashed',linewidth=4)
@@ -115,8 +111,6 @@ def visualize_auco_curve(args: Namespace):
     plt.savefig(args.fig_output_path, bbox_inches='tight', dpi=600)
 
     plt.show()
-
-    print(f'Perforamce Improvement {round((BayesMPP_auco - CPBayesMPP_auco) / BayesMPP_auco * 100, args.decimal_places)}%')
 
 
 def visualize_auce_curve(args: Namespace):
@@ -340,52 +334,69 @@ def visualize_ece_curve(args: Namespace):
 
     # cd_path_list and cl_path_list are the prediction result paths of BayesMPP and CPBayesMPP, respectively
     for i, (BayesMPP_pred_path, CPBayesMPP_pred_path) in enumerate(zip(args.BayesMPP_pred_list, args.CPBayesMPP_pred_list)):
-        BayesMPP_fops, BayesMPP_mpvs, BayesMPP_ece = calculate_ece_curve(BayesMPP_pred_path)
-        CPBayesMPP_fops, CPBayesMPP_mpvs, CPBayesMPP_ece = calculate_ece_curve(CPBayesMPP_pred_path)
+        if args.num_tasks == 1:
+            BayesMPP_fops, BayesMPP_mpvs, BayesMPP_ece = calculate_ece_curve(BayesMPP_pred_path)
+            CPBayesMPP_fops, CPBayesMPP_mpvs, CPBayesMPP_ece = calculate_ece_curve(CPBayesMPP_pred_path)
 
-        plt.plot(BayesMPP_mpvs, BayesMPP_fops, color=green,
-                 label='BayesMPP' if i == 0 else None, marker='s', markersize=8, linewidth=3, alpha=0.7)
-        plt.plot(CPBayesMPP_mpvs, CPBayesMPP_fops, color=blue,
-                 label='CPBayesMPP (Ours)' if i == 0 else None, marker='s', markersize=8, linewidth=3, alpha=0.7)
+            plt.plot(BayesMPP_mpvs, BayesMPP_fops, color=green,
+                     label='BayesMPP' if i == 0 else None, marker='s', markersize=7, linewidth=2, alpha=0.7)
+            plt.plot(CPBayesMPP_mpvs, CPBayesMPP_fops, color=blue,
+                     label='CPBayesMPP (Ours)' if i == 0 else None, marker='s', markersize=7, linewidth=2, alpha=0.7)
+
+        else:
+            BayesMPP_ece = calculate_average_ece(BayesMPP_pred_path, args.num_tasks)
+            CPBayesMPP_ece = calculate_average_ece(CPBayesMPP_pred_path, args.num_tasks)
 
         BayesMPP_eces.append(BayesMPP_ece)
         CPBayesMPP_eces.append(CPBayesMPP_ece)
 
-    # Calculate and print the mean of ECE for BayesMPP and CPBayesMPP
-    BayesMPP_eces_mean = sum(BayesMPP_eces) / len(BayesMPP_eces) if BayesMPP_eces else 0
-    CPBayesMPP_eces_mean = sum(CPBayesMPP_eces) / len(CPBayesMPP_eces) if CPBayesMPP_eces else 0
-    print(f'Mean of BayesMPP ECE: {BayesMPP_eces_mean}')
-    print(f'Mean of CPBayesMPP ECE: {CPBayesMPP_eces_mean}')
+    # Calculate and print the mean and std of ECE for BayesMPP and CPBayesMPP
+    BayesMPP_eces_mean = np.mean(BayesMPP_eces)
+    BayesMPP_eces_std = np.std(BayesMPP_eces)
+
+    CPBayesMPP_eces_mean = np.mean(CPBayesMPP_eces)
+    CPBayesMPP_eces_std = np.std(CPBayesMPP_eces)
+
+    BayesMPP_eces_mean = round(BayesMPP_eces_mean, args.decimal_places)
+    CPBayesMPP_eces_mean = round(CPBayesMPP_eces_mean, args.decimal_places)
+
+    BayesMPP_eces_std = round(BayesMPP_eces_std, args.decimal_places)
+    CPBayesMPP_eces_std = round(CPBayesMPP_eces_std, args.decimal_places)
+
+    print(f'Mean of BayesMPP ECE: {BayesMPP_eces_mean}, std = {BayesMPP_eces_std}')
+    print(f'Mean of CPBayesMPP ECE: {CPBayesMPP_eces_mean}, std = {CPBayesMPP_eces_std}')
+
     print(f'Perforamce Improvement {round((BayesMPP_eces_mean - CPBayesMPP_eces_mean) / BayesMPP_eces_mean * 100, args.decimal_places)}%')
 
 
-    # Plot the ideal calibration line
-    oracle = np.arange(0, 1.1, 0.1)
-    plt.plot(oracle, oracle, color='black', linestyle='dashed', label='Oracle Calibration', linewidth=3)
+    if args.num_tasks == 1:
+        # Plot the ideal calibration line
+        oracle = np.arange(0, 1.1, 0.1)
+        plt.plot(oracle, oracle, color='black', linestyle='dashed', label='Oracle Calibration', linewidth=3)
 
-    legend = plt.legend(frameon=True, fontsize=22, loc='upper left')
+        # legend = plt.legend(frameon=True, fontsize=22, loc='upper left')
+        #
+        # for handle in legend.legendHandles:
+        #     handle.set_linewidth(4)
+        #     handle.set_alpha(1)
 
-    for handle in legend.legendHandles:
-        handle.set_linewidth(4)
-        handle.set_alpha(1)
+        plt.xlabel('Mean Predicted Value (MPV)', fontsize=20)
+        plt.ylabel('Fraction of Positives (FOP)', fontsize=20)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
 
-    plt.xlabel('Mean Predicted Value (MPV)', fontsize=20)
-    plt.ylabel('Fraction of Positives (FOP)', fontsize=20)
-    plt.xticks(fontsize=20)
-    plt.yticks(fontsize=20)
+        title = f'{args.data_name}'.upper()
 
-    title = f'{args.data_name}'.upper()
+        plt.title(title, fontsize=20)
 
-    plt.title(title, fontsize=20)
+        args.fig_output_path = os.path.join(f'figures',
+                                            f'Uncertainty_calibration_curves_for_classification_datasets',
+                                            f'{title}.JPG')
+        os.makedirs(os.path.dirname(args.fig_output_path), exist_ok=True)
 
-    args.fig_output_path = os.path.join(f'figures',
-                                        f'Uncertainty_calibration_curves_for_classification_datasets',
-                                        f'{title}.JPG')
-    os.makedirs(os.path.dirname(args.fig_output_path), exist_ok=True)
+        plt.savefig(args.fig_output_path, bbox_inches='tight', dpi=600)
 
-    plt.savefig(args.fig_output_path, bbox_inches='tight', dpi=600)
-
-    plt.show()
+        plt.show()
 
 
 if __name__ == '__main__':

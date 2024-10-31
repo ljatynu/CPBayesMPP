@@ -104,24 +104,24 @@ def active_learning(args: Namespace):
     Active learning on a dataset under a random seed (one time).
     """
 
-    print(f'Training on {args.fold} Fold...')
+    print(f'Training on Fold [{args.fold + 1} / {args.folds}]...')
 
     data = get_data(path=args.data_path, args=args)
     args.num_tasks = data.num_tasks()  # Number of tasks of the dataset
     args.task_names = get_task_names(args.data_path)  # Save all task labels to a list
 
-    train_pool, val_data, test_data = split_data(data=data, split_type='random', sizes=(0.8, 0.1, 0.1),
+    train_data, val_data, test_data = split_data(data=data, split_type=args.split_type, sizes=args.split_sizes,
                                                  seed=args.fold, args=args)
 
-    args.train_data_size = len(train_pool)
+    args.train_data_size = len(train_data)
 
     if args.dataset_type == 'regression':
         # Normalize the labels of the regression dataset
-        train_smiles, train_targets = train_pool.smiles(), train_pool.targets()
+        train_smiles, train_targets = train_data.smiles(), train_data.targets()
         scaler = StandardScaler().fit(train_targets)
         # Labels after normalization
         scaled_targets = scaler.transform(train_targets).tolist()
-        train_pool.set_targets(scaled_targets)
+        train_data.set_targets(scaled_targets)
     else:
         scaler = None
 
@@ -155,30 +155,30 @@ def active_learning(args: Namespace):
     best_score = float('inf') if args.dataset_type == 'regression' else -float('inf')
 
     ### Define active learning step variables and subsample the tasks
-    n_total = len(train_pool)  # 513
+    n_total = len(train_data)  # 513
     n_start = int(n_total * args.al_init_ratio)
 
-    n_samples_per_run = np.linspace(n_start, args.al_end_ratio * n_total, args.n_loops)
+    n_samples_per_run = np.linspace(n_start, args.al_end_ratio * n_total, args.n_loops + 1)
     n_samples_per_run = np.round(n_samples_per_run).astype(int)
 
-    # 包含初始训练池的所有样本点的索引
+
     np.random.seed(args.fold)
     train_subset_inds_start = np.random.choice(n_total, n_start, replace=False)
 
-    train_data = train_pool.sample_idxs(train_subset_inds_start)
-    train_pool = train_pool.remove_inds(train_subset_inds_start)
+    train_pool = train_data.sample_idxs(train_subset_inds_start)  # Initial training set 20% of the total train data
+    train_data = train_data.remove_inds(train_subset_inds_start)  # Initial training pool 80% of the total train data
 
     best_model = None
     results = [args.fold]
 
-    for lp in range(args.n_loops):
+    for lp in range(args.n_loops + 1):
 
-        print(f'Loop [{lp + 1}/{args.n_loops}] with with {n_samples_per_run[lp] / n_total} % samples')
+        print(f'Loop [{lp + 1}/{args.n_loops + 1}] with with {n_samples_per_run[lp] / n_total:.2f} % samples')
 
         for epoch in range(args.epochs):
             train_score = train(
                 model=model,
-                data=train_data,
+                data=train_pool,
                 loss_func=loss_func,
                 optimizer=optimizer,
                 scheduler=scheduler,
@@ -197,10 +197,10 @@ def active_learning(args: Namespace):
                 sampling_size=args.sampling_size,
             )
 
-            if epoch % 10 == 0:
+            if (epoch + 1) % 10 == 0:
                 # print(f'Epoch {epoch}: Train Loss = {train_score: .4f}, Validation {args.metric} = {val_scores: .4f}')
                 print(
-                    f'Fold [{args.fold} / {args.folds}], Loop [{lp + 1}/{args.n_loops}], Epoch [{epoch}/{args.epochs}] Train Loss = {train_score: .4f}, Validation {args.metric} = {val_scores: .4f}')
+                    f'Fold [{args.fold + 1} / {args.folds}], Loop [{lp + 1}/{args.n_loops + 1}], Epoch [{epoch + 1}/{args.epochs}] Train Loss = {train_score: .5f}, Validation {args.metric} = {val_scores: .5f}')
 
             # Update best score
             best_score = update_best_score(args.dataset_type, val_scores, best_score)
@@ -219,18 +219,18 @@ def active_learning(args: Namespace):
             batch_size=args.batch_size,
             dataset_type=args.dataset_type,
             scaler=scaler,
-            sampling_size=args.sampling_size,
+            sampling_size=50,
         )
 
-        print(f'Test {args.metric} = {test_score: .4f}')
+        print(f'Test {args.metric} = {test_score: .5f}')
 
-        results.append(round(test_score, 3))
+        results.append(round(test_score, 5))
 
-        if lp < args.n_loops - 1:
+        if lp < args.n_loops:
             # Acquire the expanded samples
             _, preds, ale_unc, epi_unc = evaluate(
                 model=model,
-                data=train_pool,
+                data=train_data,
                 num_tasks=args.num_tasks,
                 metric_func=metric_func,
                 batch_size=args.batch_size,
@@ -240,9 +240,7 @@ def active_learning(args: Namespace):
                 retain_predict_results=True
             )
 
-            ale_unc = [ale[0] for ale in ale_unc]
             epi_unc = [epi[0] for epi in epi_unc]
-            total_unc = [ale + epi for ale, epi in zip(ale_unc, epi_unc)]
 
             selected_indices = None
             expand_size = n_samples_per_run[lp + 1] - n_samples_per_run[lp]
@@ -250,18 +248,19 @@ def active_learning(args: Namespace):
             # Randomly select samples
             if args.al_type == 'random':
                 np.random.seed(args.fold)
-                selected_indices = random.sample(range(len(train_pool)), expand_size)
+                selected_indices = random.sample(range(len(train_data)), expand_size)
             # Select samples based on epistemic uncertainty
             elif args.al_type == 'explorative':
                 selected_indices = np.argsort(epi_unc)[-expand_size:]
+            # Select samples based on true error
             elif args.al_type == 'oracle':
-                targets = train_pool.targets()
+                targets = train_data.targets()
                 if args.dataset_type == 'regression':
                     targets = scaler.inverse_transform(targets)
                 selected_indices = np.argsort(np.abs(np.array(targets).squeeze() - np.array(preds).squeeze()))[-expand_size:]
 
-            train_data = train_data.expand(train_pool.sample_idxs(selected_indices))
-            train_pool = train_pool.remove_inds(selected_indices)
+            train_pool = train_pool.expand(train_data.sample_idxs(selected_indices))  # Expand the training set
+            train_data = train_data.remove_inds(selected_indices)   # Remove the expanded samples from the training pool
 
         else:
             break
@@ -280,9 +279,7 @@ def several_folds_al(args: Namespace):
         writer = csv.writer(f)
 
         # Write the header of the .csv results file
-        header = ['Folds/Expand_ratio'] + [
-            args.al_init_ratio + i * (args.al_end_ratio - args.al_init_ratio) / args.n_loops for i in
-            range(args.n_loops)]
+        header = ['Folds/Expand_ratio'] + [ args.al_init_ratio + i * (args.al_end_ratio - args.al_init_ratio) / args.n_loops for i in range(args.n_loops + 1)]
 
         writer.writerow(header)
 

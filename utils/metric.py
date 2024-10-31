@@ -156,7 +156,7 @@ def calculate_auco_curve(pred_paths: str,
     return rmse_curve, oracle_curve
 
 
-def calculate_auce_curve(pred_path: str, args, uc_scaler: float = None):
+def calculate_auce_curve(pred_path: str, args):
     """
     :param pred_path : File path of the prediction results.
     :param args : Namespace
@@ -179,9 +179,6 @@ def calculate_auce_curve(pred_path: str, args, uc_scaler: float = None):
     else:
         raise ValueError(f'Unsupported Uncertainty type {args.uc_type}')
 
-    if uc_scaler is not None:
-        uc = uc * uc_scaler
-
     bin_scaling = [0]
     obs_emp_cov = np.zeros([100])  # shape(tasks, 101)
     exp_emp_cov = np.arange(100) / 100
@@ -199,13 +196,12 @@ def calculate_auce_curve(pred_path: str, args, uc_scaler: float = None):
     return obs_emp_cov, exp_emp_cov
 
 
-def calculate_ence_points(pred_path: str, K: int, args, uc_scaler: float = None) -> list:
+def calculate_ence_points(pred_path: str, K: int, args) -> list:
     """
     Calculate the Expected Normalized Calibration Error (ENCE) points for one seed.
 
     :param pred_path: prediction result path
     :param K: K bins
-    :param uc_scaler: uncertainty scaler factor
     :param args: Namespace
     :return: ECE points for K bins
     """
@@ -225,9 +221,6 @@ def calculate_ence_points(pred_path: str, K: int, args, uc_scaler: float = None)
         uncertainty = tol_unc
     else:
         raise ValueError(f'Unsupported Uncertainty type {args.uncertainty_type}')
-
-    if uc_scaler is not None:
-        uncertainty = uncertainty * uc_scaler
 
     rmses = []
     mvars = []
@@ -285,18 +278,18 @@ def calculate_coefficient_of_variation(pred_path: str, args):
     else:
         raise ValueError(f'Unsupported Uncertainty type {args.uncertainty_type}')
 
-    # Calculate Cv
+    # Calculate Cv, see http://arxiv.org/abs/1905.11659 for details
     sigma = np.sqrt(uncertainty)
     mu_sigma = np.mean(sigma)
 
-    Cv = np.sqrt(np.sum((sigma - mu_sigma)**2) / (len(sigma) - 1) ) / mu_sigma
+    Cv = np.sqrt(np.sum((sigma - mu_sigma)**2) / (len(sigma) - 1)) / mu_sigma
 
     return Cv
 
 
 def calculate_ece_curve(
         pred_path,
-        n_bins=5,
+        n_bins=10,
         strategy="uniform",
 ) -> Tuple[list, list, list]:
     """
@@ -367,3 +360,63 @@ def calculate_ece_curve(
     ece = np.sum(abs(fops - mpvs) * bin_total) / np.sum(bin_total) * 100
 
     return fops, mpvs, ece
+
+
+def calculate_average_ece(pred_path, num_tasks, n_bins=10, strategy="uniform"):
+    df = pd.read_csv(pred_path)
+    ece_list = []
+
+    for task in range(num_tasks):
+        y_true_col = f'task{task}_label'
+        y_prob_col = f'task{task}_pred'
+
+        if y_true_col not in df.columns or y_prob_col not in df.columns:
+            continue
+
+        # Extract columns from DataFrame to numpy arrays
+        # Extract y_true and drop null values
+        y_true = df[y_true_col].dropna().values.astype(float)
+
+        # Extract y_prob and filter out corresponding indices where y_true is null
+        y_prob = df.loc[df[y_true_col].notnull(), y_prob_col].values.astype(float)
+
+        y_true = column_or_1d(y_true)
+        y_prob = column_or_1d(y_prob)
+        check_consistent_length(y_true, y_prob)
+
+        if y_prob.min() < 0 or y_prob.max() > 1:
+            raise ValueError("y_prob has values outside [0, 1].")
+
+        labels = np.unique(y_true)
+        if len(labels) > 2:
+            raise ValueError(
+                f"Only binary classification is supported. Provided labels {labels}."
+            )
+
+        if strategy == "quantile":  # Determine bin edges by distribution of data
+            quantiles = np.linspace(0, 1, n_bins + 1)
+            bins = np.percentile(y_prob, quantiles * 100)
+        elif strategy == "uniform":
+            bins = np.linspace(0.0, 1.0, n_bins + 1)
+        else:
+            raise ValueError(
+                "Invalid entry to 'strategy' input. Strategy "
+                "must be either 'quantile' or 'uniform'."
+            )
+
+        binids = np.searchsorted(bins[1:-1], y_prob)
+
+        bin_sums = np.bincount(binids, weights=y_prob, minlength=len(bins))
+        bin_true = np.bincount(binids, weights=y_true, minlength=len(bins))
+        bin_total = np.bincount(binids, minlength=len(bins))
+
+        nonzero = bin_total != 0
+        fops = bin_true[nonzero] / bin_total[nonzero]
+        mpvs = bin_sums[nonzero] / bin_total[nonzero]
+        bin_total = bin_total[nonzero]
+
+        ece = np.sum(abs(fops - mpvs) * bin_total) / np.sum(bin_total) * 100
+        ece_list.append(ece)
+
+    average_ece = np.mean(ece_list)
+    return average_ece

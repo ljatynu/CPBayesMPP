@@ -151,7 +151,7 @@ def run_training(args: Namespace, logger: logging.Logger):
     loss_func = get_loss_func(args)  # Heteroscedastic/BCE With Logits Loss for Regression/Classification
     metric_func = get_metric_func(metric=args.metric)  # RMSE/AUC-ROC for Regression/Classification
 
-    args.pred_path = os.path.join(args.save_dir, 'preds.csv')
+    args.output_path = os.path.join(args.save_dir, 'preds.csv')
 
     # File path to save the model
     save_dir = os.path.join(args.save_dir, f'model')
@@ -173,7 +173,7 @@ def run_training(args: Namespace, logger: logging.Logger):
     info('Moving model to cuda')
     model = model.cuda()
 
-    # Save the model befor training
+    # Save the model before training
     save_checkpoint(os.path.join(save_dir, 'model.pt'), model, scaler, args)
 
     optimizer = build_optimizer(model, args)
@@ -229,7 +229,7 @@ def run_training(args: Namespace, logger: logging.Logger):
             dataset_type=args.dataset_type,
             scaler=scaler,
             logger=logger,
-            sampling_size=50,
+            sampling_size=args.sampling_size,
             retain_predict_results=True
         )
     info(f'Seed {args.seed} test {args.metric} = {test_score:.6f}')

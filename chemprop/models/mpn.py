@@ -34,6 +34,7 @@ class MPNEncoder(nn.Module):
         self.cached_zero_vector = nn.Parameter(torch.zeros(self.hidden_size), requires_grad=False)
 
         # Concrete Dropout for Bayesian NN
+        # wd = args.weight_regularizer **2 / args.train_data_size
         wd, dd = get_cc_dropout_hyper(args.train_data_size, args.regularization_scale)
 
         # Input

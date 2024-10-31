@@ -169,7 +169,20 @@ def predict_prior_latent(args: Namespace):
     latent_fs = t_sne.fit_transform(latent_fs)
 
     smiles, labels = data.smiles(), data.targets()
+
+    # Check if labels are multi-dimensional
+    if len(labels[0]) > 1:
+        # Keep only the first element of each sublist
+        labels = [label[0] for label in labels]
+
+    # Filter out None values in labels and their corresponding smiles
+    filtered_data = [(smile, label) for smile, label in zip(smiles, labels) if label is not None]
+
+    # Unzip the filtered data back into smiles and labels
+    smiles, labels = zip(*filtered_data)
+
     smiles, labels = np.array(smiles), np.array(labels).squeeze()
+
 
     # Write predictions
     with open(args.prior_latent_output_path, 'w', newline='') as f:
@@ -193,7 +206,7 @@ def predict_prior_latent(args: Namespace):
 
             writer.writerow(row)
 
-    return 0
+    return 1
 
 
 def predict_prior(args: Namespace):
@@ -211,6 +224,11 @@ if __name__ == '__main__':
     add_prior_predict_args(parser)
 
     args = parser.parse_args()
+
+    # For debugging
+    # args.data_name = 'tox21'
+    # args.prior = 'BayesMPP+Prior'  # 'BayesMPP+Prior', 'CPBayesMPP+Prior'
+    # args.predict_type = 'latent'  # 'similarity', 'latent'
 
     modify_prior_predict_args(args)
 

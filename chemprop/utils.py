@@ -215,6 +215,16 @@ def accuracy(targets: List[int], preds: List[float], threshold: float = 0.5) -> 
         hard_preds = [1 if p > threshold else 0 for p in preds] # binary prediction
     return accuracy_score(targets, hard_preds)
 
+def mae(targets: List[float], preds: List[float]) -> float:
+    """
+    Computes the mean absolute error.
+
+    :param targets: A list of targets.
+    :param preds: A list of predictions.
+    :return: The computed mae.
+    """
+    return sum([abs(target - pred) for target, pred in zip(targets, preds)]) / len(targets)
+
 
 def get_metric_func(metric: str) -> Callable:
     """
@@ -225,11 +235,14 @@ def get_metric_func(metric: str) -> Callable:
     if metric == 'roc-auc':
         return roc_auc_score
 
+    if metric == 'accuracy':
+        return accuracy
+
     if metric == 'rmse':
         return rmse
 
-    if metric == 'accuracy':
-        return accuracy
+    if metric == 'mae':
+        return mae
 
     raise ValueError(f'Metric "{metric}" not supported.')
 

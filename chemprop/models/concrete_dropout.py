@@ -8,7 +8,7 @@ import numpy as np
 
 class ConcreteDropout(nn.Module):
     def __init__(self, layer, reg_acc, weight_regularizer=1e-6,
-                 dropout_regularizer=1e-5, init_min=0.1, init_max=0.1, depth=1, train_strategy='cd'):
+                 dropout_regularizer=1e-5, init_min=0.1, init_max=0.1, depth=1, train_strategy='BayesMPP'):
         """
         We use transfer_layer to contain the weight we transfer from the pre-trained model, in order to calculate the downstrean KL divergence.
         """
@@ -37,7 +37,7 @@ class ConcreteDropout(nn.Module):
         # Calculate KL divergence
         if self.training:
             sum_of_square = 0
-            if self.train_strategy == 'CPBayesMPP' or self.train_strategy == 'CPBayesMPP+OOD' or self.train_strategy == 'CPBayesMPP+AL':
+            if self.train_strategy == 'CPBayesMPP' or self.train_strategy == 'CPBayesMPP+OOD' or self.train_strategy == 'CPBayesMPP+OOD+AL':
                 for (param, transfer_param) in zip(self.layer.parameters(), self.transfer_layer.parameters()):
                     sum_of_square += torch.sum(torch.pow(param - transfer_param, 2))  # Eqn (16) in the paper
 
@@ -45,8 +45,6 @@ class ConcreteDropout(nn.Module):
                 for param in self.layer.parameters():
                     sum_of_square += torch.sum(torch.pow(param, 2))
 
-            # Pretraining: weights_regularizer = 1.0 * 1 / train_data_size
-            # Downstream: weights_regularizer = 5.0 * 1 / train_data_size
             weights_regularizer = self.weight_regularizer * sum_of_square * (1 - p)
 
             dropout_regularizer = p * torch.log(p)

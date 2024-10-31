@@ -179,6 +179,9 @@ def modify_train_args(args: Namespace):
     else:
         raise ValueError(f'No supported data_name {args.data_name}')
 
+    if args.split_type == 'scaffold' and (args.data_name == 'qm7' or args.data_name =='qm8'):
+        args.metric = 'mae'
+
     if not args.seeds:
         if args.dataset_type == 'regression':
             args.seeds = [123, 234, 345, 456, 567, 678, 789, 890]  # Use 8 random seeds for regression
@@ -317,8 +320,7 @@ def add_visualize_uncertainty_args(parser: ArgumentParser):
                         help='K-bins for ENCE calculation')
     parser.add_argument('--max_uc', type=float, default=2,
                         help='The max value of uncertainty interval')
-    parser.add_argument('--uc_scaler', type=float, default=1,
-                        help='The max value of uncertainty interval')
+
 
 def modify_visualize_uncertainty_args(args: Namespace):
     """
@@ -389,221 +391,14 @@ def modify_visualize_uncertainty_args(args: Namespace):
         }
         args.max_uc = dataset_max_uc_values.get(args.data_name)
 
-
-def add_active_train_args(parser: ArgumentParser):
-    """
-    Adds active learning arguments to an ArgumentParser.
-
-    :param parser: An ArgumentParser.
-    """
-    # General arguments
-    parser.add_argument('--data_name', type=str, default='freesolv',
-                        help='Downstream task name')
-    parser.add_argument('--train_strategy', type=str, default='CPBayesMPP+AL',
-                        choices=['BayesMPP+AL', 'CPBayesMPP+AL'],
-                        help='Training strategy of downstream task.'
-                             'BayesMPP means training with uninformative prior.'
-                             'CPBayesMPP means training with contrastive prior.')
-    parser.add_argument('--al_type', type=str, default='oracle',
-                        choices=['random', 'explorative', 'oracle'],
-                        help='random means randomly select top-k samples when retraining the model'
-                             'uncertainty means select top-k highest epistemic uncertainty samples when retraining the model')
-    parser.add_argument('--save_dir', type=str, default='results',
-                        help='Directory where model checkpoints will be saved')
-    parser.add_argument('--kl_weight', type=float, default=5.0,
-                        help='The regularization weight of ELBO KL term in downstream task '
-                             'is determined jointly with the number of samples in the dataset.')
-
-    parser.add_argument('--save_smiles_splits', action='store_true', default=False,
-                        help='Save smiles for each train/val/test splits for prediction convenience later')
-    parser.add_argument('--split_type', type=str, default='scaffold',
-                        choices=['random', 'scaffold'],
-                        help='Method of splitting the dataset into train/val/test')
-    parser.add_argument('--split_sizes', type=float, nargs=3, default=[0.5, 0.2, 0.3],
-                        help='Split proportions for train/validation/test sets')
-    parser.add_argument('--seed', type=int, default=123,
-                        help='List of random seeds to use when splitting dataset into train/val/test sets.')
-
-    # Training arguments
-    parser.add_argument('--epochs', type=int, default=20,
-                        help='Number of epochs to run')
-    parser.add_argument('--batch_size', type=int, default=50,
-                        help='Batch size')
-    parser.add_argument('--warmup_epochs', type=float, default=2.0,
-                        help='Number of epochs during which learning rate increases linearly from'
-                             'init_lr to max_lr. Afterwards, learning rate decreases exponentially'
-                             'from max_lr to final_lr.')
-    parser.add_argument('--init_lr', type=float, default=1e-4,
-                        help='Initial learning rate')
-    parser.add_argument('--max_lr', type=float, default=1e-3,
-                        help='Maximum learning rate')
-    parser.add_argument('--final_lr', type=float, default=1e-4,
-                        help='Final learning rate')
-
-    # Model arguments
-    parser.add_argument('--hidden_size', type=int, default=300,
-                        help='Dimensionality of hidden layers in MPN')
-    parser.add_argument('--depth', type=int, default=3,
-                        help='Number of message passing steps')
-    parser.add_argument('--activation', type=str, default='ReLU',
-                        choices=['ReLU', 'LeakyReLU', 'PReLU', 'tanh', 'SELU', 'ELU'],
-                        help='Activation function')
-
-    parser.add_argument('--ffn_hidden_size', type=int, default=300,
-                        help='Hidden dim for higher-capacity FFN (defaults to hidden_size)')
-    parser.add_argument('--ffn_num_layers', type=int, default=2,
-                        help='Number of layers in FFN after MPN encoding')
-
-    parser.add_argument('--regularization_scale', type=float, default=1e-4,
-                        help='Concrete dropout regularization scale')
-    parser.add_argument('--sampling_size', type=int, default=10,
-                        help='Sampling size for MC-Dropout (USed in validation step during training)')
-
-    # Active Learning arguments
-    parser.add_argument('--al_init_ratio', type=float, default=0.25,
-                        help='The ratio of initial training pool')
-    parser.add_argument('--al_end_ratio', type=float, default=0.75,
-                        help='The ratio of ending training pool')
-    parser.add_argument('--n_loops', type=float, default=10,
-                        help='The ratio of expanded set')
-    # parser.add_argument('--init_train_step', type=int, default=100,
-    #                     help='Epoch number for initial training on the initial training pool')
-    # parser.add_argument('--active_train_step', type=int, default=10,
-    #                     help='Epoch number of re-training')
-    parser.add_argument('--folds', type=int, default=6,
-                        help='Cross-validation times for active learning')
-
-
-def modify_active_train_args(args: Namespace):
-    """
-    Modify and validate active learning arguments in place.
-
-    :param args: Arguments.
-    """
-    args.data_path = os.path.join(f'dataset',
-                                  f'{args.data_name}.csv')
-
-    args.save_dir = os.path.join(args.save_dir,
-                                 f'{args.train_strategy}',
-                                 f'{args.data_name}_checkpoints',
-                                 f'{args.al_type}',
-                                 )
-
-
-    if args.train_strategy == 'CPBayesMPP+AL':
-        args.pretrain_encoder_path = os.path.join(f'results',
-                                                  f'pretrain',
-                                                  f'pretrain_encoder.pt')
-
-    if args.data_name in ['delaney', 'freesolv', 'lipo', 'qm7', 'qm8', 'pdbbind']:
-        args.dataset_type = 'regression'
-        args.metric = 'rmse'
-    elif args.data_name in ['bbbp', 'tox21', 'clintox', 'hiv', 'bace', 'sider']:
-        args.dataset_type = 'classification'
-        args.metric = 'roc-auc'
-    else: raise ValueError(f'No supported data_name {args.data_name}')
-
-    args.cuda = torch.cuda.is_available()
-
-
-def add_visualize_active_args(parser: ArgumentParser):
-    """
-    Add active learning visualization arguments to an ArgumentParser.
-
-    :param parser: An ArgumentParser.
-    """
-    parser.add_argument('--data_name', type=str, default='delaney',
-                        help='name of dataset to plot')
-
-
-def modify_visualize_active_args(args: Namespace):
-    """
-    Modify and validate active learning visualization arguments in place.
-
-    :param args: Arguments.
-    """
-    pass
-
-
-def add_prior_predict_args(parser: ArgumentParser):
-    """
-    Add prior prediction arguments to an ArgumentParser.
-
-    :param parser: An ArgumentParser.
-    """
-    parser.add_argument('--data_name', type=str, default='delaney',
-                        help='name of dataset to plot')
-    parser.add_argument('--prior', type=str, default='CPBayesMPP+Prior',
-                        choices=['BayesMPP+Prior', 'CPBayesMPP+Prior'],
-                        help='Training strategy of downstream task.'
-                             'cd means training with uninformative prior.'
-                             'cl means training with contrastive prior.')
-    parser.add_argument('--predict_type', type=str, default='latent',
-                        choices=['similarity', 'latent'],
-                        help='Methods of uncertainty calibration.'
-                             'prior_similarity means visualize the feature similarity between 3 types of sample pairs.'
-                             '(Augmented pairs / In-distribution pairs / Out-of-distribution pairs)'
-                             'prior_latent means using t-sne to visualize the 2D latent feature distribution colored by their labels.')
-
-
-def modify_prior_predict_args(args: Namespace):
-    """
-    Modify and validate prior prediction arguments in place.
-
-    :param args: Arguments.
-    """
-    assert args.data_name is not None
-
-    args.pretrain_encoder_path = os.path.join(f'results',
-                                              f'pretrain',
-                                              f'pretrain_encoder.pt')
-
-    args.pretrain_header_path = os.path.join(f'results',
-                                              f'pretrain',
-                                              f'pretrain_header.pt')
-
-    args.data_path = os.path.join(f'dataset',
-                                  f'{args.data_name}.csv')
-
-    args.cuda = torch.cuda.is_available()
-
-
-def add_visualize_prior_args(parser: ArgumentParser):
-    """
-    Add prior visualization arguments to an ArgumentParser.
-
-    :param parser: An ArgumentParser.
-    """
-    parser.add_argument('--data_name', type=str, default='delaney',
-                        help='name of dataset to plot')
-    parser.add_argument('--prior', type=str, default='BayesMPP',
-                        choices=['BayesMPP+Prior', 'CPBayesMPP+Prior'],
-                        help='Training strategy of downstream task.'
-                             'cd means training with uninformative prior.'
-                             'cl means training with contrastive prior.')
-    parser.add_argument('--visualize_type', type=str, default='prior_latent',
-                        choices=['similarity', 'latent'],
-                        help='Methods of uncertainty calibration.'
-                             'prior_similarity means visualize the feature similarity between 3 types of samples.'
-                             '(In distribution / Out distribution / OOD samples)'
-                             'prior_latent means visualize the latent feature distribution colored by their labels.')
-
-
-def modify_visualize_prior_args(args: Namespace):
-    """
-    Modify and validate prior visualization arguments in place.
-
-    :param args: Arguments.
-    """
-
-    args.print_name = {
-        'delaney': 'ESOL',
-        'freesolv': 'FreeSolv',
-        'lipo': 'Lipo',
-        'qm7': 'QM7',
-        'qm8': 'QM8',
-        'pdbbind': 'PDBbind',
-    }
+    if args.data_name == 'tox21':
+        args.num_tasks = 12
+    elif args.data_name == 'sider':
+        args.num_tasks = 27
+    elif args.data_name == 'clintox':
+        args.num_tasks = 2
+    else:
+        args.num_tasks = 1
 
 
 def add_ood_train_args(parser: ArgumentParser):
@@ -613,9 +408,9 @@ def add_ood_train_args(parser: ArgumentParser):
     :param parser: An ArgumentParser.
     """
     # General arguments
-    parser.add_argument('--data_name', type=str, default='delaney',
+    parser.add_argument('--data_name', type=str, default='freesolv',
                         help='Downstream task name')
-    parser.add_argument('--train_strategy', type=str, default='CPBayesMPP+OOD',
+    parser.add_argument('--train_strategy', type=str, default='CPBayesMPP',
                         choices=['BayesMPP+OOD', 'CPBayesMPP+OOD'],
                         help='Training strategy of downstream task.'
                              'BayesMPP means training with uninformative prior.'
@@ -747,8 +542,6 @@ def add_visualize_ood_uncertainty_args(parser: ArgumentParser):
                         help='K-bins for ENCE calculation')
     parser.add_argument('--max_uc', type=float, default=2,
                         help='The max value of uncertainty interval')
-    parser.add_argument('--uc_scaler', type=float, default=1,
-                        help='The max value of uncertainty interval')
 
 
 def modify_visualize_ood_uncertainty_args(args: Namespace):
@@ -799,3 +592,232 @@ def modify_visualize_ood_uncertainty_args(args: Namespace):
             'pdbbind': 3.0,
         }
         args.max_uc = dataset_max_uc_values.get(args.data_name)
+
+
+def add_active_train_args(parser: ArgumentParser):
+    """
+    Adds active learning arguments to an ArgumentParser.
+
+    :param parser: An ArgumentParser.
+    """
+    # General arguments
+    parser.add_argument('--data_name', type=str, default='delaney',
+                        help='Downstream task name')
+    parser.add_argument('--train_strategy', type=str, default='CPBayesMPP+AL',
+                        choices=['BayesMPP+AL', 'CPBayesMPP+AL'],
+                        help='Training strategy of downstream task.'
+                             'BayesMPP means training with uninformative prior.'
+                             'CPBayesMPP means training with contrastive prior.')
+    parser.add_argument('--al_type', type=str, default='oracle',
+                        choices=['random', 'explorative', 'oracle'],
+                        help='random means randomly select top-k samples when retraining the model'
+                             'uncertainty means select top-k highest epistemic uncertainty samples when retraining the model')
+    parser.add_argument('--save_dir', type=str, default='results',
+                        help='Directory where model checkpoints will be saved')
+    parser.add_argument('--kl_weight', type=float, default=5.0,
+                        help='The regularization weight of ELBO KL term in downstream task '
+                             'is determined jointly with the number of samples in the dataset.')
+
+    parser.add_argument('--save_smiles_splits', action='store_true', default=False,
+                        help='Save smiles for each train/val/test splits for prediction convenience later')
+    parser.add_argument('--split_type', type=str, default='random',
+                        choices=['random', 'scaffold'],
+                        help='Method of splitting the dataset into train/val/test')
+    parser.add_argument('--split_sizes', type=float, nargs=3, default=[0.5, 0.2, 0.3],
+                        help='Split proportions for train/validation/test sets')
+    parser.add_argument('--seed', type=int, default=123,
+                        help='List of random seeds to use when splitting dataset into train/val/test sets.')
+
+    # Training arguments
+    parser.add_argument('--epochs', type=int, default=20,
+                        help='Number of epochs to run')
+    parser.add_argument('--batch_size', type=int, default=50,
+                        help='Batch size')
+    parser.add_argument('--warmup_epochs', type=float, default=2.0,
+                        help='Number of epochs during which learning rate increases linearly from'
+                             'init_lr to max_lr. Afterwards, learning rate decreases exponentially'
+                             'from max_lr to final_lr.')
+    parser.add_argument('--init_lr', type=float, default=1e-4,
+                        help='Initial learning rate')
+    parser.add_argument('--max_lr', type=float, default=1e-3,
+                        help='Maximum learning rate')
+    parser.add_argument('--final_lr', type=float, default=1e-4,
+                        help='Final learning rate')
+
+    # Model arguments
+    parser.add_argument('--hidden_size', type=int, default=300,
+                        help='Dimensionality of hidden layers in MPN')
+    parser.add_argument('--depth', type=int, default=3,
+                        help='Number of message passing steps')
+    parser.add_argument('--activation', type=str, default='ReLU',
+                        choices=['ReLU', 'LeakyReLU', 'PReLU', 'tanh', 'SELU', 'ELU'],
+                        help='Activation function')
+
+    parser.add_argument('--ffn_hidden_size', type=int, default=300,
+                        help='Hidden dim for higher-capacity FFN (defaults to hidden_size)')
+    parser.add_argument('--ffn_num_layers', type=int, default=2,
+                        help='Number of layers in FFN after MPN encoding')
+
+    parser.add_argument('--regularization_scale', type=float, default=1e-4,
+                        help='Concrete dropout regularization scale')
+    parser.add_argument('--sampling_size', type=int, default=10,
+                        help='Sampling size for MC-Dropout (USed in validation step during training)')
+
+    # Active Learning arguments
+    parser.add_argument('--al_init_ratio', type=float, default=0.20,
+                        help='The ratio of initial training pool')
+    parser.add_argument('--al_end_ratio', type=float, default=0.70,
+                        help='The ratio of ending training pool')
+    parser.add_argument('--n_loops', type=float, default=10,
+                        help='The ratio of expanded set')
+    # parser.add_argument('--init_train_step', type=int, default=100,
+    #                     help='Epoch number for initial training on the initial training pool')
+    # parser.add_argument('--active_train_step', type=int, default=10,
+    #                     help='Epoch number of re-training')
+    parser.add_argument('--folds', type=int, default=6,
+                        help='Cross-validation times for active learning')
+
+
+def modify_active_train_args(args: Namespace):
+    """
+    Modify and validate active learning arguments in place.
+
+    :param args: Arguments.
+    """
+    args.data_path = os.path.join(f'dataset',
+                                  f'{args.data_name}.csv')
+
+    args.save_dir = os.path.join(args.save_dir,
+                                 f'{args.train_strategy}',
+                                 f'{args.data_name}_checkpoints',
+                                 f'{args.al_type}',
+                                 )
+
+
+    if args.train_strategy == 'CPBayesMPP+AL':
+        args.pretrain_encoder_path = os.path.join(f'results',
+                                                  f'pretrain',
+                                                  f'pretrain_encoder.pt')
+
+    if args.data_name in ['delaney', 'freesolv', 'lipo', 'qm7', 'qm8', 'pdbbind']:
+        args.dataset_type = 'regression'
+        args.metric = 'rmse'
+    elif args.data_name in ['bbbp', 'tox21', 'clintox', 'hiv', 'bace', 'sider']:
+        args.dataset_type = 'classification'
+        args.metric = 'roc-auc'
+    else: raise ValueError(f'No supported data_name {args.data_name}')
+
+    args.cuda = torch.cuda.is_available()
+
+
+def add_visualize_active_args(parser: ArgumentParser):
+    """
+    Add active learning visualization arguments to an ArgumentParser.
+
+    :param parser: An ArgumentParser.
+    """
+    parser.add_argument('--data_name', type=str, default='bace',
+                        help='name of dataset to plot')
+
+
+def modify_visualize_active_args(args: Namespace):
+    """
+    Modify and validate active learning visualization arguments in place.
+
+    :param args: Arguments.
+    """
+    pass
+
+
+def add_prior_predict_args(parser: ArgumentParser):
+    """
+    Add prior prediction arguments to an ArgumentParser.
+
+    :param parser: An ArgumentParser.
+    """
+    parser.add_argument('--data_name', type=str, default='bace',
+                        help='name of dataset to plot')
+    parser.add_argument('--prior', type=str, default='CPBayesMPP+Prior',
+                        choices=['BayesMPP+Prior', 'CPBayesMPP+Prior'],
+                        help='Training strategy of downstream task.'
+                             'cd means training with uninformative prior.'
+                             'cl means training with contrastive prior.')
+    parser.add_argument('--predict_type', type=str, default='latent',
+                        choices=['similarity', 'latent'],
+                        help='Methods of uncertainty calibration.'
+                             'prior_similarity means visualize the feature similarity between 3 types of sample pairs.'
+                             '(Augmented pairs / In-distribution pairs / Out-of-distribution pairs)'
+                             'prior_latent means using t-sne to visualize the 2D latent feature distribution colored by their labels.')
+
+
+def modify_prior_predict_args(args: Namespace):
+    """
+    Modify and validate prior prediction arguments in place.
+
+    :param args: Arguments.
+    """
+    assert args.data_name is not None
+
+    args.pretrain_encoder_path = os.path.join(f'results',
+                                              f'pretrain',
+                                              f'pretrain_encoder.pt')
+
+    args.pretrain_header_path = os.path.join(f'results',
+                                              f'pretrain',
+                                              f'pretrain_header.pt')
+
+    args.data_path = os.path.join(f'dataset',
+                                  f'{args.data_name}.csv')
+
+    args.cuda = torch.cuda.is_available()
+
+
+def add_visualize_prior_args(parser: ArgumentParser):
+    """
+    Add prior visualization arguments to an ArgumentParser.
+
+    :param parser: An ArgumentParser.
+    """
+    parser.add_argument('--data_name', type=str, default='bace',
+                        help='name of dataset to plot')
+    parser.add_argument('--prior', type=str, default='BayesMPP+Prior',
+                        choices=['BayesMPP+Prior', 'CPBayesMPP+Prior'],
+                        help='Training strategy of downstream task.'
+                             'cd means training with uninformative prior.'
+                             'cl means training with contrastive prior.')
+    parser.add_argument('--visualize_type', type=str, default='latent',
+                        choices=['similarity', 'latent'],
+                        help='Methods of uncertainty calibration.'
+                             'prior_similarity means visualize the feature similarity between 3 types of samples.'
+                             '(In distribution / Out distribution / OOD samples)'
+                             'prior_latent means visualize the latent feature distribution colored by their labels.')
+    parser.add_argument('--colorbar', type=bool, default=False,
+                        help='Whether to save the color independently bar for the latent feature distribution plot.')
+
+
+def modify_visualize_prior_args(args: Namespace):
+    """
+    Modify and validate prior visualization arguments in place.
+
+    :param args: Arguments.
+    """
+
+    if args.data_name in ['delaney', 'freesolv', 'lipo', 'qm7', 'qm8', 'pdbbind']:
+        args.dataset_type = 'regression'
+    elif args.data_name in ['bbbp', 'tox21', 'clintox', 'hiv', 'bace', 'sider']:
+        args.dataset_type = 'classification'
+
+    args.print_name = {
+        'delaney': 'ESOL',
+        'freesolv': 'FreeSolv',
+        'lipo': 'Lipo',
+        'qm7': 'QM7',
+        'qm8': 'QM8',
+        'pdbbind': 'PDBbind',
+        'bace': 'BACE',
+        'bbbp': 'BBBP',
+        'clintox': 'ClinTox',
+        'hiv': 'HIV',
+        'sider': 'SIDER',
+        'tox21': 'Tox21',
+    }
