@@ -100,10 +100,10 @@ def visualize_active_learning(args: Namespace):
     plot_with_std(ax, data_ratio, *compute_mean_std(CPBayesMPP_explorative_curves), sns.color_palette("deep")[0], 'CPBayesMPP + Explorative Learning (Ours)', '-')
     plot_with_std(ax, data_ratio, *compute_mean_std(CPBayesMPP_oracle_curves), 'brown', 'CPBayesMPP + Oracle', '-', draw_std=False)
 
-    # legend = plt.legend(fontsize=15, loc='best', handlelength=3.0)
-    # legend.get_frame().set_alpha(0.8)
-    # for handle in legend.legendHandles:
-    #     handle.set_linewidth(2.5)
+    legend = plt.legend(fontsize=12, loc='best', handlelength=3.0)
+    legend.get_frame().set_alpha(0.8)
+    for handle in legend.legendHandles:
+        handle.set_linewidth(2.5)
 
     ax.set_xlabel('Proportion of full training set', fontsize=20)
     ax.set_ylabel('RMSE' if data_type == 'regression' else 'ROC-AUC (%)', fontsize=20)

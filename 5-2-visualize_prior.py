@@ -78,7 +78,7 @@ def visualize_prior_similarity(args: Namespace):
     plt.ylabel('Number of Pairs', fontsize=20)
     plt.xticks(fontsize=15 if ((args.data_name == 'hiv' or args.data_name == 'lipo') and args.prior == 'BayesMPP+Prior') else 20)
     plt.yticks(fontsize=20)
-    # plt.legend(fontsize=20)
+    plt.legend(fontsize=20)
 
     title = f'{args.print_name[args.data_name]} Uninformative Prior' if args.prior == 'BayesMPP+Prior' else f'{args.print_name[args.data_name]} Contrastive Prior'
     plt.title(title, fontsize=20)
