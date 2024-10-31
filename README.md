@@ -588,7 +588,7 @@ Check the file `results/CPBayesMPP/random_split/your_dataname_checkpoints/seed_1
 **Step (5):  Posterior Prediction with
 Uncertainty Evaluation.**
 
-Run the script [2-visualize_uq.py](2-visualize_uq.py) in Stage (c): case studies (1)~(5) and replace the parameter `--data_name`
+Run the script [2-visualize_uq.py](2-visualize_uq.py) in Stage (c): case studies (1)~(6) and replace the parameter `--data_name`
 with your own dataset name to make uncertainty predictions.
 
   ```bash
