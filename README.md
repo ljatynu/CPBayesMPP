@@ -1,7 +1,7 @@
 # Contrastive Prior Enhances the Performance of Bayesian Neural Network-based Molecular Property Prediction (CPBayesMPP)
 
-This repository is an implementation of our paper "Contrastive Prior Enhances the Performance of Bayesian Neural
-Network-based Molecular Property Prediction" in PyTorch. In this work, we propose a method called **<u>CPBayesMPP</u>**,
+This repository is an implementation of our paper "<u>[Contrastive Prior Enhances the Performance of Bayesian Neural
+Network-based Molecular Property Prediction](https://www.sciencedirect.com/science/article/abs/pii/S0957417425036358)</u>" in PyTorch. In this work, we propose a method called **<u>CPBayesMPP</u>**,
 aiming at enhancing (1) prediction accuracy and (2) uncertainty quantification capacity (UQ) performance of Bayesian
 Neural Network (BNN).
 
@@ -611,10 +611,13 @@ Thanks for the support of the following repositories:
 If you find this work useful to you, please cite our paper:
 
 ```
-@article{XXX,
+@article{wen2025contrastive,
   title={Contrastive Prior Enhances the Performance of Bayesian Neural Network-based Molecular Property Prediction},
-  author={XXX},
-  journal={XXX},
-  year={2024}
+  author={Wen, Chaoyu and Li, Chunyan and Li, Jin},
+  journal={Expert Systems with Applications},
+  pages={130019},
+  year={2025},
+  publisher={Elsevier}
 }
 ```
+
